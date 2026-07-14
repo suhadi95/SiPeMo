@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Upload</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <h1>Test Upload File</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".doc,.docx" required>
+        <button type="submit">Test Upload</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            fetch('/debug/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = '<p>Error: ' + error.message + '</p>';
+            });
+        });
+    </script>
+</body>
+</html>
