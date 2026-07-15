@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\MataKuliah;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,10 +11,40 @@ use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('name')->paginate(10);
-        
+        $query = User::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            match ($request->role) {
+                'admin' => $query->where('is_admin', true),
+                'penyusun' => $query->where('is_penyusun', true),
+                'lpm' => $query->where('is_lpm', true),
+                'reviewer' => $query->where('is_reviewer', true),
+                'user' => $query->where('is_admin', false)
+                    ->where('is_penyusun', false)
+                    ->where('is_lpm', false)
+                    ->where('is_reviewer', false),
+                default => null,
+            };
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $allowedPerPage = [15, 30, 60, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+
+        $users = $query->orderBy('name')->paginate($perPage)->withQueryString();
+
         return view('admin.user.index', compact('users'));
     }
 
@@ -31,6 +62,7 @@ class UserController extends Controller
             'is_admin' => 'boolean',
             'is_penyusun' => 'boolean',
             'is_lpm' => 'boolean',
+            'is_reviewer' => 'boolean',
         ]);
 
         try {
@@ -41,6 +73,7 @@ class UserController extends Controller
                 'is_admin' => $request->has('is_admin'),
                 'is_penyusun' => $request->has('is_penyusun'),
                 'is_lpm' => $request->has('is_lpm'),
+                'is_reviewer' => $request->has('is_reviewer'),
             ]);
 
             Log::info('User created by admin', [
@@ -77,15 +110,20 @@ class UserController extends Controller
             'is_admin' => 'boolean',
             'is_penyusun' => 'boolean',
             'is_lpm' => 'boolean',
+            'is_reviewer' => 'boolean',
         ]);
 
         try {
+            $wasReviewer = (bool) $user->is_reviewer;
+            $isReviewer = $request->has('is_reviewer');
+
             $updateData = [
                 'name' => $request->name,
                 'email' => $request->email,
                 'is_admin' => $request->has('is_admin'),
                 'is_penyusun' => $request->has('is_penyusun'),
                 'is_lpm' => $request->has('is_lpm'),
+                'is_reviewer' => $isReviewer,
             ];
 
             if ($request->filled('password')) {
@@ -93,6 +131,11 @@ class UserController extends Controller
             }
 
             $user->update($updateData);
+
+            // Lepas penugasan mata kuliah jika role reviewer dicabut
+            if ($wasReviewer && !$isReviewer) {
+                MataKuliah::where('reviewer_id', $user->id)->update(['reviewer_id' => null]);
+            }
 
             Log::info('User updated by admin', [
                 'user_id' => $user->id,

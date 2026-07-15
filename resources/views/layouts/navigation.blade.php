@@ -24,8 +24,17 @@
                         <!-- Kelola Data Dropdown -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" @click.away="open = false" 
-                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.jurusan.*', 'admin.mata-kuliah.*', 'admin.user.*']) ? 'border-green-500 text-gray-900' : '' }}">
+                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.jurusan.*', 'admin.mata-kuliah.*', 'admin.user.*', 'admin.penyusun.*', 'admin.reviewer.*']) ? 'border-green-500 text-gray-900' : '' }}">
                                 {{ __('Kelola Data') }}
+                                @isset($navbarNotifications)
+                                    @php 
+                                        $revPending = \App\Models\ReviewerApplication::where('status', 'pending')->count();
+                                        $kelolaPending = ($navbarNotifications['pendingApplications'] ?? 0) + $revPending; 
+                                    @endphp
+                                    @if($kelolaPending > 0)
+                                        <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $kelolaPending }}</span>
+                                    @endif
+                                @endisset
                                 <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                 </svg>
@@ -42,31 +51,6 @@
                                     <a href="{{ route('admin.user.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.user.*') ? 'bg-gray-100 text-gray-900' : '' }}">
                                         {{ __('Kelola User') }}
                                     </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Penyusunan Dropdown -->
-                        <div class="relative" x-data="{ open: false }">
-                            <button @click="open = !open" @click.away="open = false" 
-                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.penyusun.*', 'admin.reviewer.*', 'admin.tahap-penyusunan.*', 'admin.modul.*']) ? 'border-green-500 text-gray-900' : '' }}">
-                                {{ __('Penyusunan') }}
-                                @isset($navbarNotifications)
-                                    @php 
-                                        $revPending = \App\Models\ReviewerApplication::where('status', 'pending')->count();
-                                        $pendingSum = ($navbarNotifications['pendingApplications'] ?? 0) + ($navbarNotifications['modulDalamProses'] ?? 0) + $revPending; 
-                                    @endphp
-                                    @if($pendingSum > 0)
-                                        <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $pendingSum }}</span>
-                                    @endif
-                                @endisset
-                                <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                            <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" 
-                                 class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                                <div class="py-1">
                                     <a href="{{ route('admin.penyusun.index') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.penyusun.*') ? 'bg-gray-100 text-gray-900' : '' }}">
                                         {{ __('Kelola Penyusun') }}
                                         @isset($navbarNotifications)
@@ -82,28 +66,19 @@
                                             <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $revPending }}</span>
                                         @endif
                                     </a>
-                                    <a href="{{ route('admin.tahap-penyusunan.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.tahap-penyusunan.*') ? 'bg-gray-100 text-gray-900' : '' }}">
-                                        {{ __('Periode Penyusunan') }}
-                                    </a>
-                                    <a href="{{ route('admin.modul.index') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.modul.*') ? 'bg-gray-100 text-gray-900' : '' }}">
-                                        {{ __('Penyusunan Modul') }}
-                                        @isset($navbarNotifications)
-                                            @if(($navbarNotifications['modulDalamProses'] ?? 0) > 0)
-                                                <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $navbarNotifications['modulDalamProses'] }}</span>
-                                            @endif
-                                        @endisset
-                                    </a>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Publikasi Dropdown -->
+                        <!-- Penyusunan Dropdown -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" @click.away="open = false" 
-                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.final-draft.*', 'admin.publication.*']) ? 'border-green-500 text-gray-900' : '' }}">
-                                {{ __('Publikasi') }}
+                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.tahap-penyusunan.*', 'admin.modul.*', 'admin.final-draft.*', 'admin.publication.*']) ? 'border-green-500 text-gray-900' : '' }}">
+                                {{ __('Penyusunan') }}
                                 @isset($navbarNotifications)
-                                    @php $pendingSum = ($navbarNotifications['finalModulPending'] ?? 0) + ($navbarNotifications['publikasiModulPending'] ?? 0); @endphp
+                                    @php 
+                                        $pendingSum = ($navbarNotifications['modulDalamProses'] ?? 0) + ($navbarNotifications['finalModulPending'] ?? 0) + ($navbarNotifications['publikasiModulPending'] ?? 0); 
+                                    @endphp
                                     @if($pendingSum > 0)
                                         <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $pendingSum }}</span>
                                     @endif
@@ -115,6 +90,17 @@
                             <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" 
                                  class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                                 <div class="py-1">
+                                    <a href="{{ route('admin.tahap-penyusunan.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.tahap-penyusunan.*') ? 'bg-gray-100 text-gray-900' : '' }}">
+                                        {{ __('Periode Penyusunan') }}
+                                    </a>
+                                    <a href="{{ route('admin.modul.index') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.modul.*') ? 'bg-gray-100 text-gray-900' : '' }}">
+                                        {{ __('Penyusunan Modul') }}
+                                        @isset($navbarNotifications)
+                                            @if(($navbarNotifications['modulDalamProses'] ?? 0) > 0)
+                                                <span class="ml-2 inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-800 text-xs font-medium px-2 py-0.5">{{ $navbarNotifications['modulDalamProses'] }}</span>
+                                            @endif
+                                        @endisset
+                                    </a>
                                     <a href="{{ route('admin.final-draft.index') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.final-draft.*') ? 'bg-gray-100 text-gray-900' : '' }}">
                                         {{ __('Final Draft') }}
                                         @isset($navbarNotifications)
@@ -283,28 +269,23 @@
                 <x-responsive-nav-link :href="route('admin.user.index')" :active="request()->routeIs('admin.user.*')">
                     {{ __('Kelola User') }}
                 </x-responsive-nav-link>
-
-                <!-- Penyusunan Section -->
-                <div class="px-3 py-2">
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ __('Penyusunan') }}</div>
-                </div>
                 <x-responsive-nav-link :href="route('admin.penyusun.index')" :active="request()->routeIs('admin.penyusun.*')">
                     {{ __('Kelola Penyusun') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.reviewer.index')" :active="request()->routeIs('admin.reviewer.*')">
                     {{ __('Kelola Reviewer') }}
                 </x-responsive-nav-link>
+
+                <!-- Penyusunan Section -->
+                <div class="px-3 py-2">
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ __('Penyusunan') }}</div>
+                </div>
                 <x-responsive-nav-link :href="route('admin.tahap-penyusunan.index')" :active="request()->routeIs('admin.tahap-penyusunan.*')">
                     {{ __('Periode Penyusunan') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.modul.index')" :active="request()->routeIs('admin.modul.*')">
                     {{ __('Penyusunan Modul') }}
                 </x-responsive-nav-link>
-
-                <!-- Publikasi Section -->
-                <div class="px-3 py-2">
-                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ __('Publikasi') }}</div>
-                </div>
                 <x-responsive-nav-link :href="route('admin.final-draft.index')" :active="request()->routeIs('admin.final-draft.*')">
                     {{ __('Final Draft') }}
                 </x-responsive-nav-link>

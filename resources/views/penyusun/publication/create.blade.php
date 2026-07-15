@@ -406,6 +406,39 @@
                         </div>
                     </div>
 
+                    <!-- Pernyataan Kebenaran Data -->
+                    <div class="mb-4 sm:mb-6">
+                        <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4 flex items-center">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Pernyataan Kebenaran Data
+                        </h3>
+
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                            <div class="flex items-start space-x-3">
+                                <input id="setuju_data_benar"
+                                       name="setuju_data_benar"
+                                       type="checkbox"
+                                       value="1"
+                                       class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                       {{ old('setuju_data_benar') ? 'checked' : '' }}
+                                       required>
+                                <label for="setuju_data_benar" class="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                                    <span class="font-medium text-gray-900">
+                                        Saya menyatakan bahwa seluruh data dan dokumen yang saya kirimkan pada pengajuan publikasi ini adalah benar dan lengkap.
+                                    </span>
+                                    <span class="block mt-1 text-gray-600">
+                                        Segala kesalahan, kekurangan, atau ketidaksesuaian data menjadi tanggung jawab saya sepenuhnya.
+                                    </span>
+                                </label>
+                            </div>
+                            @error('setuju_data_benar')
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
                     <!-- Submit Button -->
                     <div class="bg-gray-50 border-t border-gray-200 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 sm:py-4 mt-4 sm:mt-6">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
@@ -421,7 +454,8 @@
                                     Batal
                                 </a>
                                 <button type="submit" 
-                                        class="inline-flex items-center justify-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm text-sm">
+                                        id="submitPublicationBtn"
+                                        class="inline-flex items-center justify-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                     </svg>
@@ -442,6 +476,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const sertifikatHkiInput = document.getElementById('sertifikat_hki_file');
     const nikInput = document.getElementById('nik');
     const npwpInput = document.getElementById('npwp');
+    const setujuDataBenar = document.getElementById('setuju_data_benar');
+    const submitBtn = document.getElementById('submitPublicationBtn');
+
+    function updateSubmitButtonState() {
+        if (!submitBtn || !setujuDataBenar) return;
+        submitBtn.disabled = !setujuDataBenar.checked;
+    }
+
+    if (setujuDataBenar) {
+        updateSubmitButtonState();
+        setujuDataBenar.addEventListener('change', updateSubmitButtonState);
+    }
     
     // NIK validation - only numbers, max 16 digits
     if (nikInput) {
@@ -561,6 +607,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
         }
+
+        if (setujuDataBenar && !setujuDataBenar.checked) {
+            e.preventDefault();
+            alert('Silakan centang pernyataan kebenaran data sebelum mengajukan publikasi.');
+            setujuDataBenar.focus();
+            return;
+        }
         
         // Check file size - Final Modul: 25MB, Sertifikat HKI: 10MB
         const maxSizeFinalModul = 25 * 1024 * 1024;
@@ -577,7 +630,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.innerHTML = `
             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

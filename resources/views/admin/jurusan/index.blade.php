@@ -25,6 +25,41 @@
             </div>
         @endif
 
+        <!-- Filter dan Pencarian -->
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-4 sm:mb-6">
+            <div class="p-4 sm:p-6">
+                <form method="GET" action="{{ route('admin.jurusan.index') }}" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+                            <input type="text" name="search" id="search" value="{{ request('search') }}"
+                                placeholder="Cari nama atau kode jurusan..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label for="per_page" class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
+                            <select name="per_page" id="per_page" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="15" {{ request('per_page', '15') == '15' ? 'selected' : '' }}>15</option>
+                                <option value="30" {{ request('per_page') == '30' ? 'selected' : '' }}>30</option>
+                                <option value="60" {{ request('per_page') == '60' ? 'selected' : '' }}>60</option>
+                                <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                        <a href="{{ route('admin.jurusan.index') }}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                            Reset
+                        </a>
+                        <button type="submit" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6">
                 <div class="overflow-x-auto">
@@ -74,7 +109,7 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                                        Belum ada data jurusan.
+                                        Tidak ada data jurusan yang sesuai dengan filter.
                                     </td>
                                 </tr>
                             @endforelse

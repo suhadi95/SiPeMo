@@ -127,6 +127,10 @@
             </div>
         </div>
 
+        <div class="mt-6">
+            <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="penyusun" />
+        </div>
+
         <!-- Back Button -->
         <div class="mt-6 flex justify-end">
             <a href="{{ route('penyusun.final-draft.index') }}" 

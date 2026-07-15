@@ -199,6 +199,10 @@
             </div>
         </div>
 
+        <div class="mt-6">
+            <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="lpm" />
+        </div>
+
         <!-- Back Button -->
         <div class="mt-6 flex justify-center sm:justify-end">
             <a href="{{ route('lpm.final-draft.index') }}" 

@@ -12,10 +12,40 @@ class MataKuliahController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $mataKuliah = MataKuliah::with('jurusan')->orderBy('semester', 'asc')->paginate(10);
-        return view('admin.mata-kuliah.index', compact('mataKuliah'));
+        $query = MataKuliah::with('jurusan');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_mata_kuliah', 'like', "%{$search}%")
+                  ->orWhere('kode_mata_kuliah', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('jurusan_id')) {
+            $query->where('jurusan_id', $request->jurusan_id);
+        }
+
+        if ($request->filled('semester')) {
+            $query->where('semester', $request->semester);
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $allowedPerPage = [15, 30, 60, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+
+        $mataKuliah = $query->orderBy('semester', 'asc')
+            ->orderBy('nama_mata_kuliah')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $jurusans = Jurusan::orderBy('nama_jurusan')->get();
+
+        return view('admin.mata-kuliah.index', compact('mataKuliah', 'jurusans'));
     }
 
     /**

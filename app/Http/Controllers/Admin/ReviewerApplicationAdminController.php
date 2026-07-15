@@ -44,6 +44,12 @@ class ReviewerApplicationAdminController extends Controller
 
         $applications = $query->paginate($perPage)->withQueryString();
 
+        // Map mata kuliah yang ditugaskan per email reviewer (untuk baris yang sudah approved)
+        $usersByEmail = User::whereIn('email', $applications->pluck('email')->unique()->filter())
+            ->with(['reviewerMataKuliahs' => fn ($q) => $q->orderBy('nama_mata_kuliah')])
+            ->get()
+            ->keyBy('email');
+
         $stats = [
             'total' => ReviewerApplication::count(),
             'pending' => ReviewerApplication::where('status', 'pending')->count(),
@@ -51,7 +57,7 @@ class ReviewerApplicationAdminController extends Controller
             'rejected' => ReviewerApplication::where('status', 'rejected')->count(),
         ];
 
-        return view('admin.reviewer.index', compact('applications', 'stats'));
+        return view('admin.reviewer.index', compact('applications', 'stats', 'usersByEmail'));
     }
 
     public function show(ReviewerApplication $application)

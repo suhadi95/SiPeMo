@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Lpm;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinalDraft;
+use App\Models\FinalDraftActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -49,7 +50,7 @@ class FinalDraftController extends Controller
 
     public function show(FinalDraft $finalDraft)
     {
-        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator']);
+        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator', 'activityLogs.actor']);
         
         return view('lpm.final-draft.show', compact('finalDraft'));
     }
@@ -77,6 +78,16 @@ class FinalDraftController extends Controller
                 'catatan_lpm' => $request->catatan_lpm,
                 'lpm_validated_at' => now(),
                 'lpm_validated_by' => Auth::id(),
+            ]);
+
+            FinalDraftActivityLog::create([
+                'final_draft_id' => $finalDraft->id,
+                'actor_id' => Auth::id(),
+                'actor_role' => 'lpm',
+                'action' => $request->status,
+                'status_after' => $request->status,
+                'notes' => $request->catatan_lpm,
+                'created_at' => now(),
             ]);
 
             Log::info('Final draft validated by LPM', [

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Penyusun;
 use App\Http\Controllers\Controller;
 use App\Models\Modul;
 use App\Models\PenyusunApplication;
+use App\Models\Setting;
 use App\Models\TahapPenyusunan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +41,9 @@ class ModulController extends Controller
             ->orderBy('tahap_id')
             ->get();
 
-        return view('penyusun.modul.index', compact('application', 'tahaps', 'moduls'));
+        $templateModulUrl = Setting::get('template_modul_url');
+
+        return view('penyusun.modul.index', compact('application', 'tahaps', 'moduls', 'templateModulUrl'));
     }
 
     public function create($tahap)

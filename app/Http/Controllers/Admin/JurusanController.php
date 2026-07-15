@@ -11,9 +11,26 @@ class JurusanController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $jurusan = Jurusan::withCount('mataKuliah')->paginate(10);
+        $query = Jurusan::withCount('mataKuliah');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_jurusan', 'like', "%{$search}%")
+                  ->orWhere('kode_jurusan', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $allowedPerPage = [15, 30, 60, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+
+        $jurusan = $query->orderBy('nama_jurusan')->paginate($perPage)->withQueryString();
+
         return view('admin.jurusan.index', compact('jurusan'));
     }
 

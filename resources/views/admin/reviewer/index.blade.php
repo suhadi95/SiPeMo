@@ -175,6 +175,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Reviewer</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIDN</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mata Kuliah</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No WA</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -183,6 +184,9 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($applications as $index => $app)
+                                @php
+                                    $assignedMk = $usersByEmail->get($app->email)?->reviewerMataKuliahs ?? collect();
+                                @endphp
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $applications->firstItem() + $index }}
@@ -195,6 +199,20 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $app->nidn }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($assignedMk->isNotEmpty())
+                                            <div class="space-y-1">
+                                                @foreach($assignedMk as $mk)
+                                                    <div class="text-sm text-gray-900">{{ $mk->nama_mata_kuliah }}</div>
+                                                    @if($mk->kode_mata_kuliah)
+                                                        <div class="text-xs text-gray-500">{{ $mk->kode_mata_kuliah }}</div>
+                                                    @endif
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-sm text-gray-400">Belum ditugaskan</span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $app->email }}
@@ -223,7 +241,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-10 text-center text-sm text-gray-500">
+                                    <td colspan="8" class="px-6 py-10 text-center text-sm text-gray-500">
                                         Belum ada pengajuan pendaftaran reviewer.
                                     </td>
                                 </tr>

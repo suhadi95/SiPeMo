@@ -58,17 +58,14 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <span class="block text-xs font-semibold text-gray-500 uppercase">Penyusun</span>
-                            <span class="text-sm font-medium text-gray-900">{{ $finalDraft->penyusunApplication->nama_penyusun }}</span>
+                            <span class="block text-xs font-semibold text-gray-500 uppercase">Kode Draft</span>
+                            <span class="text-sm font-medium text-gray-900">FD-{{ str_pad($finalDraft->id, 5, '0', STR_PAD_LEFT) }}</span>
+                            <p class="text-xs text-gray-400 mt-0.5">Identitas penyusun disembunyikan (blind review)</p>
                         </div>
                         <div>
-                            <span class="block text-xs font-semibold text-gray-500 uppercase">NIDN Penyusun</span>
-                            <span class="text-sm font-medium text-gray-900">{{ $finalDraft->penyusunApplication->nidn }}</span>
+                            <span class="block text-xs font-semibold text-gray-500 uppercase">Tanggal Diunggah</span>
+                            <span class="text-sm font-medium text-gray-900">{{ $finalDraft->uploaded_at->format('d F Y - H:i') }} WIB</span>
                         </div>
-                    </div>
-                    <div>
-                        <span class="block text-xs font-semibold text-gray-500 uppercase">Tanggal Diunggah</span>
-                        <span class="text-sm font-medium text-gray-900">{{ $finalDraft->uploaded_at->format('d F Y - H:i') }} WIB</span>
                     </div>
                 </div>
 
@@ -82,7 +79,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                             <div class="max-w-[250px] sm:max-w-[400px]">
-                                <span class="block text-sm font-semibold text-gray-900 truncate" title="{{ $finalDraft->file_name }}">{{ $finalDraft->file_name }}</span>
+                                <span class="block text-sm font-semibold text-gray-900 truncate" title="FinalDraft_FD-{{ str_pad($finalDraft->id, 5, '0', STR_PAD_LEFT) }}">FinalDraft_FD-{{ str_pad($finalDraft->id, 5, '0', STR_PAD_LEFT) }}.{{ pathinfo($finalDraft->file_name, PATHINFO_EXTENSION) }}</span>
                                 <span class="block text-xs text-gray-400">Word Document (.doc / .docx)</span>
                             </div>
                         </div>
@@ -227,6 +224,10 @@
                     </div>
                 @endif
             </div>
+        </div>
+
+        <div class="mt-6">
+            <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="reviewer" />
         </div>
 
     </div>

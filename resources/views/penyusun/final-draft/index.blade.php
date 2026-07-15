@@ -107,9 +107,8 @@
                                     </svg>
                                     <span class="text-xs sm:text-sm text-green-700">Sudah divalidasi</span>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Oleh: {{ $finalDraft->reviewerValidator->name ?? 'Reviewer' }}</p>
                                 @if($finalDraft->reviewer_validated_at)
-                                    <p class="text-xs text-gray-500">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
                                 @endif
                             @elseif($finalDraft->status === 'rejected_by_reviewer')
                                 <div class="flex items-center">
@@ -118,9 +117,8 @@
                                     </svg>
                                     <span class="text-xs sm:text-sm text-red-700">Ditolak oleh Reviewer</span>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Oleh: {{ $finalDraft->reviewerValidator->name ?? 'Reviewer' }}</p>
                                 @if($finalDraft->reviewer_validated_at)
-                                    <p class="text-xs text-gray-500">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
                                 @endif
                             @else
                                 <div class="flex items-center">
@@ -187,6 +185,10 @@
                             @endif
                         </div>
                     @endif
+
+                    <div class="mt-4 sm:mt-6">
+                        <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="penyusun" />
+                    </div>
                 </div>
             </div>
         @else

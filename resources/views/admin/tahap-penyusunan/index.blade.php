@@ -24,7 +24,61 @@
 
 @section('content')
 <div class="py-12">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        {{-- Template Modul --}}
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6 text-gray-900">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Template Modul</h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Masukkan link Google Drive template modul. Link ini akan ditampilkan di dashboard dan halaman penyusunan penyusun.
+                </p>
+
+                @if($errors->any())
+                    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <ul class="list-disc list-inside text-sm">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.tahap-penyusunan.template.update') }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <label for="template_modul_url" class="block text-sm font-medium text-gray-700 mb-1">
+                                Link Template Modul (Google Drive)
+                            </label>
+                            <input type="url"
+                                   name="template_modul_url"
+                                   id="template_modul_url"
+                                   value="{{ old('template_modul_url', $templateModulUrl) }}"
+                                   placeholder="https://drive.google.com/..."
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap">
+                                Simpan Template
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                @if($templateModulUrl)
+                    <p class="mt-3 text-sm text-gray-600">
+                        Template saat ini:
+                        <a href="{{ $templateModulUrl }}" target="_blank" rel="noopener noreferrer"
+                           class="text-blue-600 hover:text-blue-800 underline break-all">
+                            {{ $templateModulUrl }}
+                        </a>
+                    </p>
+                @endif
+            </div>
+        </div>
+
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6 text-gray-900">
                 @if(session('success'))

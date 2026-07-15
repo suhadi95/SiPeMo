@@ -3,45 +3,110 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Jurusan;
 use App\Models\PublicationModul;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 class PublicationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil semua penyusun yang approved dengan relasi yang diperlukan
-        $penyusuns = \App\Models\PenyusunApplication::where('status', 'approved')
+        $allPenyusuns = \App\Models\PenyusunApplication::where('status', 'approved')
             ->with(['user', 'mataKuliah.jurusan', 'moduls.tahapPenyusunan', 'finalDrafts', 'publicationModuls'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Ambil semua jurusan
-        $allJurusans = \App\Models\Jurusan::orderBy('nama_jurusan')->get();
+        $summary = $this->calculateSummary($allPenyusuns);
 
-        // Kelompokkan penyusun berdasarkan jurusan
-        $penyusunsByJurusan = $penyusuns->groupBy(function($penyusun) {
-            return $penyusun->mataKuliah->jurusan->nama_jurusan ?? 'Lainnya';
-        });
+        $penyusuns = $allPenyusuns;
 
-        // Pastikan semua jurusan ada dalam array, meskipun kosong
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $penyusuns = $penyusuns->filter(function ($penyusun) use ($search) {
+                return str_contains(strtolower($penyusun->nama_penyusun ?? ''), $search)
+                    || str_contains(strtolower($penyusun->judul_bahan_ajar ?? ''), $search)
+                    || str_contains(strtolower($penyusun->email ?? ''), $search)
+                    || str_contains(strtolower($penyusun->mataKuliah?->nama_mata_kuliah ?? ''), $search)
+                    || str_contains(strtolower($penyusun->mataKuliah?->jurusan?->nama_jurusan ?? ''), $search);
+            });
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->status;
+            $penyusuns = $penyusuns->filter(function ($penyusun) use ($status) {
+                return $this->resolvePublicationStatus($penyusun) === $status;
+            });
+        }
+
+        if ($request->filled('jurusan_id')) {
+            $jurusanId = (int) $request->jurusan_id;
+            $penyusuns = $penyusuns->filter(fn ($p) => ($p->mataKuliah?->jurusan_id ?? null) === $jurusanId);
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $allowedPerPage = [15, 30, 60, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+
+        $penyusuns = $penyusuns->values();
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentItems = $penyusuns->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $currentItems,
+            $penyusuns->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $allJurusans = Jurusan::orderBy('nama_jurusan')->get();
+        $penyusunsByJurusan = $currentItems->groupBy(fn ($p) => $p->mataKuliah->jurusan->nama_jurusan ?? 'Lainnya');
+
         $penyusunsByJurusanWithAll = collect();
-        foreach($allJurusans as $jurusan) {
-            $penyusunsByJurusanWithAll->put($jurusan->nama_jurusan, $penyusunsByJurusan->get($jurusan->nama_jurusan, collect()));
+        foreach ($penyusunsByJurusan as $nama => $items) {
+            $penyusunsByJurusanWithAll->put($nama, $items);
         }
 
-        // Tambahkan jurusan "Lainnya" jika ada penyusun tanpa jurusan
-        if($penyusunsByJurusan->has('Lainnya')) {
-            $penyusunsByJurusanWithAll->put('Lainnya', $penyusunsByJurusan->get('Lainnya'));
+        $jurusans = $allJurusans;
+
+        return view('admin.publication.index', compact(
+            'penyusunsByJurusanWithAll',
+            'summary',
+            'paginator',
+            'jurusans'
+        ));
+    }
+
+    /**
+     * Status publikasi yang ditampilkan di kolom tabel.
+     */
+    private function resolvePublicationStatus($penyusun): string
+    {
+        $publication = $penyusun->publicationModuls->first();
+        $finalDraft = $penyusun->finalDrafts->first();
+        $isFullyValidated = $finalDraft && $finalDraft->isLpmValidated() && $finalDraft->status === 'approved';
+
+        if ($publication) {
+            if ($publication->status == 'approved') {
+                return 'approved';
+            }
+            if ($publication->status == 'rejected') {
+                return 'rejected';
+            }
+            return 'pending';
         }
 
-        // Hitung summary data
-        $summary = $this->calculateSummary($penyusuns);
+        if ($isFullyValidated) {
+            return 'siap_upload';
+        }
 
-        return view('admin.publication.index', compact('penyusunsByJurusanWithAll', 'summary'));
+        return 'belum_tersedia';
     }
 
     private function calculateSummary($penyusuns)

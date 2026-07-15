@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinalDraft;
+use App\Models\Jurusan;
 use App\Models\PenyusunApplication;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -14,44 +16,108 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinalDraftController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil semua penyusun yang approved dengan relasi yang diperlukan
-        $penyusuns = PenyusunApplication::where('status', 'approved')
+        $allPenyusuns = PenyusunApplication::where('status', 'approved')
             ->with(['mataKuliah.jurusan', 'moduls.tahapPenyusunan', 'finalDrafts', 'publicationModuls'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Ambil semua jurusan
-        $allJurusans = \App\Models\Jurusan::orderBy('nama_jurusan')->get();
-
-        // Kelompokkan penyusun berdasarkan jurusan
-        $penyusunsByJurusan = $penyusuns->groupBy(function($penyusun) {
-            return $penyusun->mataKuliah->jurusan->nama_jurusan ?? 'Lainnya';
-        });
-
-        // Pastikan semua jurusan ada dalam array, meskipun kosong
-        $penyusunsByJurusanWithAll = collect();
-        foreach($allJurusans as $jurusan) {
-            $penyusunsByJurusanWithAll->put($jurusan->nama_jurusan, $penyusunsByJurusan->get($jurusan->nama_jurusan, collect()));
-        }
-
-        // Tambahkan jurusan "Lainnya" jika ada penyusun tanpa jurusan
-        if($penyusunsByJurusan->has('Lainnya')) {
-            $penyusunsByJurusanWithAll->put('Lainnya', $penyusunsByJurusan->get('Lainnya'));
-        }
-
-        // Ambil final drafts untuk statistik
         $finalDrafts = FinalDraft::with(['penyusunApplication', 'mataKuliah', 'lpmValidator'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.final-draft.index', compact('penyusunsByJurusanWithAll', 'finalDrafts'));
+        $penyusuns = $allPenyusuns;
+
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $penyusuns = $penyusuns->filter(function ($penyusun) use ($search) {
+                return str_contains(strtolower($penyusun->nama_penyusun ?? ''), $search)
+                    || str_contains(strtolower($penyusun->judul_bahan_ajar ?? ''), $search)
+                    || str_contains(strtolower($penyusun->email ?? ''), $search)
+                    || str_contains(strtolower($penyusun->mataKuliah?->nama_mata_kuliah ?? ''), $search)
+                    || str_contains(strtolower($penyusun->mataKuliah?->jurusan?->nama_jurusan ?? ''), $search);
+            });
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->status;
+            $penyusuns = $penyusuns->filter(function ($penyusun) use ($status) {
+                return $this->resolveFinalDraftStatus($penyusun) === $status;
+            });
+        }
+
+        if ($request->filled('jurusan_id')) {
+            $jurusanId = (int) $request->jurusan_id;
+            $penyusuns = $penyusuns->filter(fn ($p) => ($p->mataKuliah?->jurusan_id ?? null) === $jurusanId);
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+        $allowedPerPage = [15, 30, 60, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 15;
+        }
+
+        $penyusuns = $penyusuns->values();
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $currentItems = $penyusuns->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $currentItems,
+            $penyusuns->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $allJurusans = Jurusan::orderBy('nama_jurusan')->get();
+        $penyusunsByJurusan = $currentItems->groupBy(fn ($p) => $p->mataKuliah->jurusan->nama_jurusan ?? 'Lainnya');
+
+        $penyusunsByJurusanWithAll = collect();
+        foreach ($penyusunsByJurusan as $nama => $items) {
+            $penyusunsByJurusanWithAll->put($nama, $items);
+        }
+
+        $jurusans = $allJurusans;
+
+        return view('admin.final-draft.index', compact(
+            'penyusunsByJurusanWithAll',
+            'finalDrafts',
+            'paginator',
+            'jurusans'
+        ));
+    }
+
+    /**
+     * Status Final Draft yang ditampilkan di kolom tabel.
+     */
+    private function resolveFinalDraftStatus(PenyusunApplication $penyusun): string
+    {
+        $finalDraft = $penyusun->finalDrafts->first();
+        $allTahapsValidated = $penyusun->moduls->where('status', 'approved')->count() >= 6;
+
+        if ($finalDraft) {
+            if ($finalDraft->status === 'approved') {
+                return 'approved';
+            }
+            if ($finalDraft->status === 'rejected') {
+                return 'rejected';
+            }
+            if ($finalDraft->status === 'pending') {
+                return $finalDraft->isLpmValidated() ? 'approved' : 'pending';
+            }
+        }
+
+        if ($allTahapsValidated) {
+            return 'siap_upload';
+        }
+
+        return 'belum_tersedia';
     }
 
     public function show(FinalDraft $finalDraft)
     {
-        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator']);
+        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator', 'activityLogs.actor']);
         
         return view('admin.final-draft.show', compact('finalDraft'));
     }

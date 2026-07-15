@@ -138,6 +138,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/tahap-penyusunan', [TahapPenyusunanController::class, 'index'])->name('admin.tahap-penyusunan.index');
     Route::get('/admin/tahap-penyusunan/create', [TahapPenyusunanController::class, 'create'])->name('admin.tahap-penyusunan.create');
     Route::post('/admin/tahap-penyusunan', [TahapPenyusunanController::class, 'store'])->name('admin.tahap-penyusunan.store');
+    Route::put('/admin/tahap-penyusunan/template', [TahapPenyusunanController::class, 'updateTemplate'])->name('admin.tahap-penyusunan.template.update');
     Route::get('/admin/tahap-penyusunan/{tahap}/edit', [TahapPenyusunanController::class, 'edit'])->name('admin.tahap-penyusunan.edit');
     Route::put('/admin/tahap-penyusunan/{tahap}', [TahapPenyusunanController::class, 'update'])->name('admin.tahap-penyusunan.update');
     Route::post('/admin/tahap-penyusunan/{tahap}/activate', [TahapPenyusunanController::class, 'activate'])->name('admin.tahap-penyusunan.activate');
@@ -207,6 +208,8 @@ Route::get('/api/mata-kuliah/{jurusanId}', function ($jurusanId) {
         $mk->pending_count = \App\Models\PenyusunApplication::where('mata_kuliah_id', $mk->id)
             ->where('status', 'pending')
             ->count();
+        // Blind review: jangan paparkan reviewer_id ke klien publik
+        $mk->makeHidden(['reviewer_id']);
         return $mk;
     });
     
@@ -247,8 +250,10 @@ Route::middleware(['auth', 'penyusun'])->group(function () {
             ->where('status', 'approved')
             ->with(['mataKuliah', 'moduls.tahapPenyusunan', 'finalDrafts', 'publicationModuls'])
             ->get();
+
+        $templateModulUrl = \App\Models\Setting::get('template_modul_url');
         
-        return view('penyusun.dashboard', compact('penyusunApplications'));
+        return view('penyusun.dashboard', compact('penyusunApplications', 'templateModulUrl'));
     })->name('penyusun.dashboard');
 
     // Penyusun modul

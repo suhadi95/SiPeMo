@@ -107,7 +107,7 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penyusun</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Draft</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul Modul</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mata Kuliah</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Upload</th>
@@ -119,7 +119,7 @@
                             @forelse($latestDrafts as $draft)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-950 font-medium">
-                                        {{ $draft->penyusunApplication->nama_penyusun }}
+                                        FD-{{ str_pad($draft->id, 5, '0', STR_PAD_LEFT) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $draft->judul_modul }}

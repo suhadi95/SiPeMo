@@ -75,4 +75,9 @@ class FinalDraft extends Model
     {
         return $this->hasMany(PublicationModul::class);
     }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(FinalDraftActivityLog::class)->orderByDesc('created_at');
+    }
 }

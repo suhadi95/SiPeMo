@@ -115,6 +115,17 @@
                                     <span class="text-gray-500">(Validasi final draft)</span>
                                 </span>
                             </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" 
+                                       name="is_reviewer" 
+                                       value="1"
+                                       {{ old('is_reviewer', $user->is_reviewer) ? 'checked' : '' }}
+                                       class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                <span class="ml-2 text-sm text-gray-700">
+                                    Reviewer
+                                    <span class="text-gray-500">(Review final draft mata kuliah)</span>
+                                </span>
+                            </label>
                         </div>
                         <p class="mt-2 text-sm text-gray-500">Pilih minimal satu role untuk user ini.</p>
                     </div>

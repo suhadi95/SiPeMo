@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PenyusunApplication;
+use App\Models\Setting;
 use App\Models\TahapPenyusunan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,8 +14,23 @@ class TahapPenyusunanController extends Controller
     public function index()
     {
         $tahaps = TahapPenyusunan::global()->orderBy('tahap')->get();
-        
-        return view('admin.tahap-penyusunan.index', compact('tahaps'));
+        $templateModulUrl = Setting::get('template_modul_url');
+
+        return view('admin.tahap-penyusunan.index', compact('tahaps', 'templateModulUrl'));
+    }
+
+    public function updateTemplate(Request $request)
+    {
+        $request->validate([
+            'template_modul_url' => 'nullable|url|max:2048',
+        ], [
+            'template_modul_url.url' => 'Link template modul harus berupa URL yang valid.',
+        ]);
+
+        Setting::set('template_modul_url', $request->template_modul_url);
+
+        return redirect()->route('admin.tahap-penyusunan.index')
+            ->with('success', 'Template modul berhasil disimpan.');
     }
 
     public function create()

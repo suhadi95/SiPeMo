@@ -31,9 +31,9 @@ class DashboardController extends Controller
             ->where('status', 'rejected_by_reviewer')
             ->count();
 
-        // Ambil final drafts terbaru yang perlu di-review
+        // Ambil final drafts terbaru yang perlu di-review (tanpa data identitas penyusun)
         $latestDrafts = FinalDraft::whereIn('mata_kuliah_id', $mataKuliahIds)
-            ->with(['penyusunApplication', 'mataKuliah'])
+            ->with(['mataKuliah'])
             ->orderBy('uploaded_at', 'desc')
             ->take(5)
             ->get();

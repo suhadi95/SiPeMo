@@ -109,6 +109,66 @@
             </div>
         </div>
 
+        <!-- Filter dan Pencarian -->
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-4 sm:mb-6">
+            <div class="p-4 sm:p-6">
+                <form method="GET" action="{{ route('admin.publication.index') }}" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
+                            <input type="text" name="search" id="search" value="{{ request('search') }}"
+                                placeholder="Cari nama, judul, email, MK..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Filter Status</label>
+                            <select name="status" id="status" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="">Semua Status</option>
+                                <option value="belum_tersedia" {{ request('status') == 'belum_tersedia' ? 'selected' : '' }}>Belum Tersedia</option>
+                                <option value="siap_upload" {{ request('status') == 'siap_upload' ? 'selected' : '' }}>Siap Upload</option>
+                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu Validasi</option>
+                                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui</option>
+                                <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="jurusan_id" class="block text-sm font-medium text-gray-700 mb-1">Filter Jurusan</label>
+                            <select name="jurusan_id" id="jurusan_id" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="">Semua Jurusan</option>
+                                @foreach($jurusans as $jurusan)
+                                    <option value="{{ $jurusan->id }}" {{ request('jurusan_id') == $jurusan->id ? 'selected' : '' }}>
+                                        {{ $jurusan->nama_jurusan }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="per_page" class="block text-sm font-medium text-gray-700 mb-1">Tampilkan</label>
+                            <select name="per_page" id="per_page" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="15" {{ request('per_page', '15') == '15' ? 'selected' : '' }}>15</option>
+                                <option value="30" {{ request('per_page') == '30' ? 'selected' : '' }}>30</option>
+                                <option value="60" {{ request('per_page') == '60' ? 'selected' : '' }}>60</option>
+                                <option value="100" {{ request('per_page') == '100' ? 'selected' : '' }}>100</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                        <a href="{{ route('admin.publication.index') }}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center">
+                            Reset
+                        </a>
+                        <button type="submit" class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @php $rowNumber = $paginator->firstItem() ?? 1; @endphp
         @if($penyusunsByJurusanWithAll->count() > 0)
             @foreach($penyusunsByJurusanWithAll as $namaJurusan => $penyusuns)
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-4 sm:mb-6">
@@ -146,10 +206,10 @@
                                                 </tr>
                                             </thead>
                                             <tbody class="bg-white divide-y divide-gray-200">
-                                                @foreach($penyusuns as $index => $penyusun)
+                                                @foreach($penyusuns as $penyusun)
                                                     <tr>
                                                         <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                                                            {{ $index + 1 }}
+                                                            {{ $rowNumber++ }}
                                                         </td>
                                                         <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                                             <div class="text-xs sm:text-sm font-medium text-gray-900">
@@ -243,6 +303,14 @@
                     </div>
                 </div>
             @endforeach
+
+            @if($paginator->hasPages())
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-4 sm:mb-6">
+                    <div class="p-4 sm:p-6">
+                        {{ $paginator->links() }}
+                    </div>
+                </div>
+            @endif
         @else
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-4 sm:p-6 text-center">
@@ -250,8 +318,23 @@
                         <svg class="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada publikasi</h3>
-                        <p class="mt-1 text-xs sm:text-sm text-gray-500">Belum ada publikasi modul yang perlu divalidasi.</p>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">
+                            @if(request()->hasAny(['search', 'status', 'jurusan_id']))
+                                Tidak ada data
+                            @else
+                                Belum ada publikasi
+                            @endif
+                        </h3>
+                        <p class="mt-1 text-xs sm:text-sm text-gray-500">
+                            @if(request()->hasAny(['search', 'status', 'jurusan_id']))
+                                Tidak ada data yang sesuai dengan filter.
+                            @else
+                                Belum ada publikasi modul yang perlu divalidasi.
+                            @endif
+                        </p>
+                        @if(request()->hasAny(['search', 'status', 'jurusan_id']))
+                            <a href="{{ route('admin.publication.index') }}" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800">Reset Filter</a>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -88,6 +88,9 @@ class PublicationController extends Controller
             'nama_bank' => 'required|string|max:255',
             'nomor_rekening' => 'required|string|max:50',
             'nama_pemilik_rekening' => 'required|string|max:255',
+            'setuju_data_benar' => 'accepted',
+        ], [
+            'setuju_data_benar.accepted' => 'Anda harus mencentang pernyataan kebenaran data sebelum mengajukan publikasi.',
         ]);
 
         try {

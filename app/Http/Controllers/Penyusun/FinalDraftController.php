@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class FinalDraftController extends Controller
 {
@@ -39,7 +38,7 @@ class FinalDraftController extends Controller
 
         // Ambil final draft yang sudah diupload
         $finalDraft = FinalDraft::where('penyusun_application_id', $application->id)
-            ->with(['mataKuliah', 'lpmValidator'])
+            ->with(['mataKuliah', 'lpmValidator', 'activityLogs.actor'])
             ->first();
 
         return view('penyusun.final-draft.index', compact('application', 'finalDraft'));
@@ -200,20 +199,18 @@ class FinalDraftController extends Controller
                     ->with('error', 'Mata kuliah tidak ditemukan.');
             }
 
-            // Upload file dengan format: FinalDraft_nama penyusun_tanggal-bulan-tahun
+            // Upload file anonim (blind review): FinalDraft_{appId}_{tanggal}_{timestamp}
             $file = $request->file('file_modul');
             $extension = $file->getClientOriginalExtension();
-            $namaPenyusun = Str::slug($application->nama_penyusun);
             $tanggal = now()->format('d-m-Y');
             $timestamp = time();
             
-            $fileName = "FinalDraft_{$namaPenyusun}_{$tanggal}_{$timestamp}.{$extension}";
+            $fileName = "FinalDraft_APP{$application->id}_{$tanggal}_{$timestamp}.{$extension}";
             
             // Pastikan nama file unik
-            $originalFileName = $fileName;
             $counter = 1;
             while (Storage::disk('public')->exists('final-drafts/' . $fileName)) {
-                $fileName = "FinalDraft_{$namaPenyusun}_{$tanggal}_{$timestamp}_{$counter}.{$extension}";
+                $fileName = "FinalDraft_APP{$application->id}_{$tanggal}_{$timestamp}_{$counter}.{$extension}";
                 $counter++;
             }
             
@@ -336,7 +333,7 @@ class FinalDraftController extends Controller
             abort(403, 'Anda tidak memiliki akses ke final draft ini.');
         }
 
-        $finalDraft->load(['mataKuliah', 'lpmValidator']);
+        $finalDraft->load(['mataKuliah', 'lpmValidator', 'activityLogs.actor']);
 
         return view('penyusun.final-draft.show', compact('finalDraft'));
     }

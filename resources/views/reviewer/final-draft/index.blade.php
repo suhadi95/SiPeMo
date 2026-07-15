@@ -41,7 +41,7 @@
                         <div>
                             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
                             <input type="text" name="search" id="search" value="{{ request('search') }}" 
-                                placeholder="Cari judul modul, nama penyusun..."
+                                placeholder="Cari judul modul atau kode draft (FD-00001)..."
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                         </div>
                         
@@ -80,7 +80,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penyusun</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Draft</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul Modul</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mata Kuliah</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Upload</th>
@@ -95,7 +95,7 @@
                                         {{ $finalDrafts->firstItem() + $index }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ $draft->penyusunApplication->nama_penyusun }}
+                                        FD-{{ str_pad($draft->id, 5, '0', STR_PAD_LEFT) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ $draft->judul_modul }}

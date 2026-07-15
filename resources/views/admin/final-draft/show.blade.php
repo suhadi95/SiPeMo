@@ -161,6 +161,10 @@
             </div>
         </div>
 
+        <div class="mt-4 sm:mt-6">
+            <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="admin" />
+        </div>
+
         <!-- Back Button -->
         <div class="mt-4 sm:mt-6 flex justify-center sm:justify-end">
             <a href="{{ route('admin.final-draft.index') }}" 
