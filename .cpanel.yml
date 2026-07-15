@@ -3,5 +3,22 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/suhadipc/public_html/web_sipemo2/
-    - /usr/bin/rsync -av --delete --exclude='.env' --exclude='vendor/' --exclude='storage/' --exclude='.git/' ./ $DEPLOYPATH
+
+    - /bin/rm -rf $DEPLOYPATH/app
+    - /bin/rm -rf $DEPLOYPATH/config
+    - /bin/rm -rf $DEPLOYPATH/database
+    - /bin/rm -rf $DEPLOYPATH/resources
+    - /bin/rm -rf $DEPLOYPATH/routes
+
+    - /bin/cp -R app $DEPLOYPATH
+    - /bin/cp -R bootstrap $DEPLOYPATH
+    - /bin/cp -R config $DEPLOYPATH
+    - /bin/cp -R database $DEPLOYPATH
+    - /bin/cp -R public $DEPLOYPATH
+    - /bin/cp -R resources $DEPLOYPATH
+    - /bin/cp -R routes $DEPLOYPATH
+
+    - /bin/cp artisan $DEPLOYPATH
+    - /bin/cp composer.json $DEPLOYPATH
+    - /bin/cp composer.lock $DEPLOYPATH
 ```
