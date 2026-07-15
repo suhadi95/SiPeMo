@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('tahap_penyusunans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('penyusun_application_id')->constrained('penyusun_applications')->onDelete('cascade');
             $table->integer('tahap');
+            $table->string('nama_periode');
             $table->string('nama_tahap');
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai');
-            $table->boolean('is_active')->default(false);
             $table->text('deskripsi')->nullable();
+            $table->text('deskripsi_tahap')->nullable();
             $table->timestamps();
         });
     }

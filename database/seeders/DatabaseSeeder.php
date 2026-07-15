@@ -19,8 +19,12 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             LpmUserSeeder::class,
             JurusanSeeder::class,
-            MataKuliahSeederS1::class,
-            MataKuliahSeederS2::class,
+            MataKuliahSeederS1PAI::class,
+            MataKuliahSeederS2PAI::class,
+            MataKuliahSeederHKI::class,
+            MataKuliahSeederPBA::class,
+            MataKuliahSeederPGMI::class,
+            MataKuliahSeederSPI::class,
         ]);
     }
 }

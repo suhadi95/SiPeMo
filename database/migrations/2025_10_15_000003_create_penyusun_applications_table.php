@@ -16,15 +16,19 @@ return new class extends Migration
             $table->string('nama_penyusun');
             $table->string('email');
             $table->string('no_wa')->nullable();
-            $table->string('nip')->nullable(); 
-            $table->string('nuptk')->nullable();
+            $table->string('nip')->nullable();
+            $table->string('nidn')->nullable();
             $table->string('judul_bahan_ajar');
             $table->string('jurusan');
             $table->string('semester');
             $table->string('mata_kuliah');
-            $table->string('draft_path'); 
-            $table->boolean('setuju_template_dan_waktu')->default(false);
-            $table->enum('status', ['pending', 'disetujui', 'ditolak'])->default('pending');
+            $table->foreignId('mata_kuliah_id')->nullable()->constrained('mata_kuliahs')->nullOnDelete();
+            $table->string('draft_path')->nullable();
+            $table->boolean('setuju_informasi')->default(false);
+            $table->boolean('setuju_pelaksanaan')->default(false);
+            $table->boolean('setuju_jml_modul')->default(false);
+            $table->boolean('setuju_pembiayaan')->default(false);
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamp('approved_at')->nullable();
             $table->foreignId('validated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('rejection_reason')->nullable();
@@ -40,5 +44,3 @@ return new class extends Migration
         Schema::dropIfExists('penyusun_applications');
     }
 };
-
-

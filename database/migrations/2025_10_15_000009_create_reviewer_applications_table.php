@@ -20,10 +20,10 @@ return new class extends Migration
             $table->string('nidn');
             $table->string('sertifikasi_path');
             $table->string('sertifikasi_name');
-            $table->string('status', 30)->default('pending'); // pending, approved, rejected
+            $table->string('status', 30)->default('pending');
             $table->text('rejection_reason')->nullable();
             $table->timestamp('approved_at')->nullable();
-            $table->foreignId('validated_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('validated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

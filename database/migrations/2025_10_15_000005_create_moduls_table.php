@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('moduls', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('penyusun_application_id')->constrained('penyusun_applications')->onDelete('cascade');
-            $table->foreignId('mata_kuliah_id')->constrained('mata_kuliahs')->onDelete('cascade');
+            $table->foreignId('penyusun_application_id')->constrained('penyusun_applications')->cascadeOnDelete();
+            $table->foreignId('mata_kuliah_id')->constrained('mata_kuliahs')->cascadeOnDelete();
+            $table->foreignId('tahap_id')->nullable()->constrained('tahap_penyusunans')->nullOnDelete();
             $table->integer('nomor_modul');
             $table->string('judul_modul');
             $table->text('deskripsi_modul')->nullable();
@@ -24,7 +25,7 @@ return new class extends Migration
             $table->text('catatan_admin')->nullable();
             $table->timestamp('uploaded_at')->nullable();
             $table->timestamp('validated_at')->nullable();
-            $table->foreignId('validated_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('validated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

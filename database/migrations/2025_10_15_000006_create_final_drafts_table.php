@@ -13,20 +13,20 @@ return new class extends Migration
     {
         Schema::create('final_drafts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('penyusun_application_id')->constrained()->onDelete('cascade');
-            $table->foreignId('mata_kuliah_id')->constrained()->onDelete('cascade');
+            $table->foreignId('penyusun_application_id')->constrained('penyusun_applications')->cascadeOnDelete();
+            $table->foreignId('mata_kuliah_id')->constrained('mata_kuliahs')->cascadeOnDelete();
             $table->string('judul_modul');
             $table->text('deskripsi_modul')->nullable();
             $table->string('file_path');
             $table->string('file_name');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
-            $table->text('catatan_admin')->nullable();
+            $table->string('status', 50)->default('pending');
             $table->text('catatan_lpm')->nullable();
             $table->timestamp('uploaded_at');
-            $table->timestamp('validated_at')->nullable();
-            $table->foreignId('validated_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('lpm_validated_at')->nullable();
-            $table->foreignId('lpm_validated_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('lpm_validated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('reviewer_validated_at')->nullable();
+            $table->foreignId('reviewer_validated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('catatan_reviewer')->nullable();
             $table->timestamps();
         });
     }

@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('mata_kuliahs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('jurusan_id')->constrained('jurusans')->onDelete('cascade');
+            $table->foreignId('jurusan_id')->constrained('jurusans')->cascadeOnDelete();
             $table->string('nama_mata_kuliah');
             $table->string('kode_mata_kuliah')->unique();
             $table->integer('semester');
-            $table->integer('sks')->check('sks IN (2, 3)');
+            $table->integer('sks');
             $table->text('deskripsi')->nullable();
+            $table->foreignId('reviewer_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }
