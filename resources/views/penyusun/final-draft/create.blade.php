@@ -2,7 +2,7 @@
 
 @section('header')
 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-    {{ $existingFinalDraft && $existingFinalDraft->status === 'rejected' ? 'Upload Ulang Final Draft Modul' : 'Upload Final Draft Modul' }}
+    {{ $existingFinalDraft && in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'], true) ? 'Upload Ulang Final Draft Modul' : 'Upload Final Draft Modul' }}
 </h2>
 @endsection
 
@@ -20,14 +20,28 @@
                     </div>
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-purple-800">
-                            {{ $existingFinalDraft && $existingFinalDraft->status === 'rejected' ? 'Petunjuk Upload Ulang Final Draft' : 'Petunjuk Upload Final Draft' }}
+                            {{ $existingFinalDraft && in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'], true) ? 'Petunjuk Upload Ulang Final Draft' : 'Petunjuk Upload Final Draft' }}
                         </h3>
                         <div class="mt-2 text-sm text-purple-700">
                             @if($existingFinalDraft && $existingFinalDraft->status === 'rejected')
                             <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                                 <p class="text-red-800 font-medium">Final draft sebelumnya ditolak oleh LPM</p>
+                                <p class="text-red-700 mt-1 text-xs">Setelah upload ulang, draft akan langsung masuk antrean LPM (tanpa ulang review reviewer).</p>
                                 @if($existingFinalDraft->catatan_lpm)
                                 <p class="text-red-700 mt-1"><strong>Catatan LPM:</strong> {{ $existingFinalDraft->catatan_lpm }}</p>
+                                @endif
+                            </div>
+                            @elseif($existingFinalDraft && $existingFinalDraft->status === 'rejected_by_reviewer')
+                            <div class="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                                <p class="text-orange-800 font-medium">
+                                    Final draft perlu diperbaiki
+                                    @if($existingFinalDraft->hasil_penilaian_label)
+                                        ({{ $existingFinalDraft->hasil_penilaian_label }})
+                                    @endif
+                                </p>
+                                <p class="text-orange-700 mt-1 text-xs">Setelah upload ulang, draft akan dinilai ulang oleh reviewer.</p>
+                                @if($existingFinalDraft->catatan_reviewer)
+                                <p class="text-orange-700 mt-1"><strong>Catatan Reviewer:</strong> {{ $existingFinalDraft->catatan_reviewer }}</p>
                                 @endif
                             </div>
                             @endif
@@ -35,7 +49,13 @@
                                 <li>Pastikan semua 4 tahap penyusunan sudah divalidasi</li>
                                 <li>File harus dalam format .doc atau .docx</li>
                                 <li>Ukuran file maksimal 25MB</li>
-                                <li>Final draft akan divalidasi oleh LPM</li>
+                                <li>
+                                    @if($existingFinalDraft && $existingFinalDraft->status === 'rejected')
+                                        Final draft akan divalidasi ulang oleh LPM
+                                    @else
+                                        Final draft akan dinilai oleh reviewer, lalu divalidasi LPM
+                                    @endif
+                                </li>
                             </ul>
                         </div>
                     </div>

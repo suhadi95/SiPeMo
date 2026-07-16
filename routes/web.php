@@ -15,6 +15,8 @@ use App\Http\Controllers\Lpm\DashboardController as LpmDashboardController;
 use App\Http\Controllers\Lpm\FinalDraftController as LpmFinalDraftController;
 use App\Http\Controllers\Lpm\MonitoringController as LpmMonitoringController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\ReviewAspekController;
+use App\Http\Controllers\Admin\MonitoringController as AdminMonitoringController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -94,6 +96,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
+    Route::get('/admin/monitoring', [AdminMonitoringController::class, 'index'])->name('admin.monitoring');
+
     // Admin penyusun
     Route::get('/admin/penyusun', [\App\Http\Controllers\Admin\PenyusunApplicationAdminController::class, 'index'])->name('admin.penyusun.index');
     Route::get('/admin/penyusun/laporan/download', [\App\Http\Controllers\Admin\PenyusunApplicationAdminController::class, 'downloadLaporanValidasi'])->name('admin.penyusun.download-laporan');
@@ -143,6 +147,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/admin/tahap-penyusunan/{tahap}', [TahapPenyusunanController::class, 'update'])->name('admin.tahap-penyusunan.update');
     Route::post('/admin/tahap-penyusunan/{tahap}/activate', [TahapPenyusunanController::class, 'activate'])->name('admin.tahap-penyusunan.activate');
     Route::post('/admin/tahap-penyusunan/reset', [TahapPenyusunanController::class, 'reset'])->name('admin.tahap-penyusunan.reset');
+
+    // Admin kriteria penilaian reviewer
+    Route::get('/admin/review-aspek', [ReviewAspekController::class, 'index'])->name('admin.review-aspek.index');
+    Route::get('/admin/review-aspek/create', [ReviewAspekController::class, 'create'])->name('admin.review-aspek.create');
+    Route::post('/admin/review-aspek', [ReviewAspekController::class, 'store'])->name('admin.review-aspek.store');
+    Route::get('/admin/review-aspek/{reviewAspek}', [ReviewAspekController::class, 'show'])->name('admin.review-aspek.show');
+    Route::get('/admin/review-aspek/{reviewAspek}/edit', [ReviewAspekController::class, 'edit'])->name('admin.review-aspek.edit');
+    Route::put('/admin/review-aspek/{reviewAspek}', [ReviewAspekController::class, 'update'])->name('admin.review-aspek.update');
+    Route::delete('/admin/review-aspek/{reviewAspek}', [ReviewAspekController::class, 'destroy'])->name('admin.review-aspek.destroy');
+    Route::post('/admin/review-aspek/{reviewAspek}/pertanyaan', [ReviewAspekController::class, 'storePertanyaan'])->name('admin.review-aspek.pertanyaan.store');
+    Route::put('/admin/review-aspek/{reviewAspek}/pertanyaan/{pertanyaan}', [ReviewAspekController::class, 'updatePertanyaan'])->name('admin.review-aspek.pertanyaan.update');
+    Route::delete('/admin/review-aspek/{reviewAspek}/pertanyaan/{pertanyaan}', [ReviewAspekController::class, 'destroyPertanyaan'])->name('admin.review-aspek.pertanyaan.destroy');
+    Route::post('/admin/review-aspek/{reviewAspek}/move', [ReviewAspekController::class, 'move'])->name('admin.review-aspek.move');
+    Route::post('/admin/review-aspek/{reviewAspek}/pertanyaan/{pertanyaan}/move', [ReviewAspekController::class, 'movePertanyaan'])->name('admin.review-aspek.pertanyaan.move');
 
     // Admin modul
     Route::get('/admin/modul', [AdminModulController::class, 'index'])->name('admin.modul.index');
@@ -297,6 +315,7 @@ Route::middleware(['auth', 'reviewer'])->group(function () {
     Route::get('/reviewer/dashboard', [\App\Http\Controllers\Reviewer\DashboardController::class, 'index'])->name('reviewer.dashboard');
     Route::get('/reviewer/final-draft', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'index'])->name('reviewer.final-draft.index');
     Route::get('/reviewer/final-draft/{finalDraft}', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'show'])->name('reviewer.final-draft.show');
+    Route::get('/reviewer/final-draft/{finalDraft}/penilaian', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'assess'])->name('reviewer.final-draft.assess');
     Route::get('/reviewer/final-draft/{finalDraft}/download', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'download'])->name('reviewer.final-draft.download');
     Route::post('/reviewer/final-draft/{finalDraft}/validate', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'validateDraft'])->name('reviewer.final-draft.validate');
 });

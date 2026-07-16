@@ -56,12 +56,16 @@ class FinalDraftActivityLog extends Model
         return match ($this->action) {
             'approved' => 'Diterima',
             'rejected' => 'Ditolak',
-            default => ucfirst($this->action),
+            'sangat_layak' => 'Sangat Layak',
+            'layak_dengan_perbaikan' => 'Layak dengan Perbaikan',
+            'perlu_revisi_mayor' => 'Perlu Revisi Mayor',
+            'tidak_layak' => 'Tidak Layak',
+            default => ucfirst(str_replace('_', ' ', $this->action)),
         };
     }
 
     public function isApproved(): bool
     {
-        return $this->action === 'approved';
+        return in_array($this->action, ['approved', 'sangat_layak'], true);
     }
 }

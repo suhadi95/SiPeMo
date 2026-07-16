@@ -131,19 +131,9 @@
                                         {{ $draft->uploaded_at->format('d M Y H:i') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        @if($draft->status === 'pending_review')
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Menunggu Reviewer</span>
-                                        @elseif($draft->status === 'approved_by_reviewer')
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Lolos Reviewer (Menunggu LPM)</span>
-                                        @elseif($draft->status === 'rejected_by_reviewer')
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Ditolak Reviewer</span>
-                                        @elseif($draft->status === 'approved')
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Disetujui LPM</span>
-                                        @elseif($draft->status === 'rejected')
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Ditolak LPM</span>
-                                        @else
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ $draft->status }}</span>
-                                        @endif
+                                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $draft->statusBadgeClass() }}">
+                                            {{ $draft->statusLabel() }}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('reviewer.final-draft.show', $draft) }}" class="text-indigo-600 hover:text-indigo-900">Detail & Tindakan</a>

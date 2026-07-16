@@ -55,7 +55,7 @@ class AppServiceProvider extends ServiceProvider
             if ($user->is_admin) {
                 $pendingApplications = \App\Models\PenyusunApplication::where('status', 'pending')->count();
                 $modulDalamProses = Modul::where('status', 'pending')->count();
-                $finalModulPending = FinalDraft::whereIn('status', ['pending_review', 'approved_by_reviewer'])->count();
+                $finalModulPending = FinalDraft::whereIn('status', ['pending_review', 'approved_by_reviewer', 'pending_lpm'])->count();
                 $publikasiModulPending = PublicationModul::where('status', 'pending')->orWhereNull('validated_at')->count();
 
                 // Build admin notification items
@@ -175,8 +175,8 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($user->is_lpm) {
-                // LPM: jumlah final draft yang sudah disetujui reviewer tapi belum divalidasi LPM
-                $finalModulPending = FinalDraft::where('status', 'approved_by_reviewer')->count();
+                // LPM: draft yang menunggu validasi (lolos reviewer atau resubmit setelah tolak LPM)
+                $finalModulPending = FinalDraft::whereIn('status', ['approved_by_reviewer', 'pending_lpm'])->count();
 
                 $notificationItems[] = [
                     'label' => 'Final Draft menunggu validasi LPM',

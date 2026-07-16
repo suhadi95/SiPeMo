@@ -24,7 +24,7 @@ class DashboardController extends Controller
             ->count();
             
         $approvedReviews = FinalDraft::whereIn('mata_kuliah_id', $mataKuliahIds)
-            ->whereIn('status', ['approved_by_reviewer', 'approved'])
+            ->whereIn('status', ['approved_by_reviewer', 'pending_lpm', 'approved'])
             ->count();
             
         $rejectedReviews = FinalDraft::whereIn('mata_kuliah_id', $mataKuliahIds)

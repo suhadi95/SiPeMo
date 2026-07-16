@@ -117,7 +117,7 @@ class FinalDraftController extends Controller
 
     public function show(FinalDraft $finalDraft)
     {
-        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator', 'activityLogs.actor']);
+        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers', 'latestReview.reviewer']);
         
         return view('admin.final-draft.show', compact('finalDraft'));
     }

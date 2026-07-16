@@ -73,7 +73,7 @@
                         <!-- Penyusunan Dropdown -->
                         <div class="relative" x-data="{ open: false }">
                             <button @click="open = !open" @click.away="open = false" 
-                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.tahap-penyusunan.*', 'admin.modul.*', 'admin.final-draft.*', 'admin.publication.*']) ? 'border-green-500 text-gray-900' : '' }}">
+                                    class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:border-gray-300 border-b-2 border-transparent transition-colors duration-200 {{ request()->routeIs(['admin.tahap-penyusunan.*', 'admin.review-aspek.*', 'admin.modul.*', 'admin.final-draft.*', 'admin.publication.*']) ? 'border-green-500 text-gray-900' : '' }}">
                                 {{ __('Penyusunan') }}
                                 @isset($navbarNotifications)
                                     @php 
@@ -92,6 +92,9 @@
                                 <div class="py-1">
                                     <a href="{{ route('admin.tahap-penyusunan.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.tahap-penyusunan.*') ? 'bg-gray-100 text-gray-900' : '' }}">
                                         {{ __('Periode Penyusunan') }}
+                                    </a>
+                                    <a href="{{ route('admin.review-aspek.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.review-aspek.*') ? 'bg-gray-100 text-gray-900' : '' }}">
+                                        {{ __('Kriteria Penilaian') }}
                                     </a>
                                     <a href="{{ route('admin.modul.index') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('admin.modul.*') ? 'bg-gray-100 text-gray-900' : '' }}">
                                         {{ __('Penyusunan Modul') }}
@@ -120,6 +123,10 @@
                                 </div>
                             </div>
                         </div>
+
+                        <x-nav-link :href="route('admin.monitoring')" :active="request()->routeIs('admin.monitoring')">
+                            {{ __('Monitoring') }}
+                        </x-nav-link>
 
                     @endif
                     
@@ -283,6 +290,9 @@
                 <x-responsive-nav-link :href="route('admin.tahap-penyusunan.index')" :active="request()->routeIs('admin.tahap-penyusunan.*')">
                     {{ __('Periode Penyusunan') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.review-aspek.index')" :active="request()->routeIs('admin.review-aspek.*')">
+                    {{ __('Kriteria Penilaian') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.modul.index')" :active="request()->routeIs('admin.modul.*')">
                     {{ __('Penyusunan Modul') }}
                 </x-responsive-nav-link>
@@ -291,6 +301,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.publication.index')" :active="request()->routeIs('admin.publication.*')">
                     {{ __('Publikasi') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.monitoring')" :active="request()->routeIs('admin.monitoring')">
+                    {{ __('Monitoring') }}
                 </x-responsive-nav-link>
             @endif
             

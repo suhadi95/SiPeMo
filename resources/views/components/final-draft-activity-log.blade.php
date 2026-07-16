@@ -23,14 +23,16 @@
                 <span @class([
                     'absolute -left-[9px] top-1 w-4 h-4 rounded-full ring-2 ring-white',
                     'bg-green-500' => $log->isApproved(),
-                    'bg-red-500' => !$log->isApproved(),
+                    'bg-yellow-500' => in_array($log->action, ['layak_dengan_perbaikan', 'perlu_revisi_mayor'], true),
+                    'bg-red-500' => !$log->isApproved() && !in_array($log->action, ['layak_dengan_perbaikan', 'perlu_revisi_mayor'], true),
                 ])></span>
 
                 <div class="flex flex-wrap items-center gap-2 mb-1">
                     <span @class([
                         'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                         'bg-green-100 text-green-800' => $log->isApproved(),
-                        'bg-red-100 text-red-800' => !$log->isApproved(),
+                        'bg-yellow-100 text-yellow-800' => in_array($log->action, ['layak_dengan_perbaikan', 'perlu_revisi_mayor'], true),
+                        'bg-red-100 text-red-800' => !$log->isApproved() && !in_array($log->action, ['layak_dengan_perbaikan', 'perlu_revisi_mayor'], true),
                     ])>
                         {{ $log->actionLabel() }}
                     </span>

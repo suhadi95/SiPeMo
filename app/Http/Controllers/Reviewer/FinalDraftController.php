@@ -5,25 +5,27 @@ namespace App\Http\Controllers\Reviewer;
 use App\Http\Controllers\Controller;
 use App\Models\FinalDraft;
 use App\Models\FinalDraftActivityLog;
+use App\Models\FinalDraftReview;
 use App\Models\MataKuliah;
+use App\Models\ReviewAspek;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class FinalDraftController extends Controller
 {
     public function index(Request $request)
     {
         $user = Auth::user();
-        
-        // Ambil mata kuliah yang ditugaskan ke reviewer ini
+
         $mataKuliahIds = MataKuliah::where('reviewer_id', $user->id)->pluck('id')->toArray();
-        
+
         $query = FinalDraft::whereIn('mata_kuliah_id', $mataKuliahIds)
             ->with(['mataKuliah.jurusan']);
 
-        // Search (blind review: tanpa nama/identitas penyusun)
         if ($request->filled('search')) {
             $search = $request->search;
             $draftId = null;
@@ -39,7 +41,6 @@ class FinalDraftController extends Controller
             });
         }
 
-        // Filter status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -51,14 +52,55 @@ class FinalDraftController extends Controller
 
     public function show(FinalDraft $finalDraft)
     {
-        // Pastikan reviewer memiliki wewenang atas mata kuliah ini
         if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
             abort(403, 'Anda tidak memiliki hak akses untuk mereview final draft ini.');
         }
 
-        $finalDraft->load(['mataKuliah.jurusan', 'reviewerValidator', 'lpmValidator', 'activityLogs.actor']);
+        $finalDraft->load([
+            'mataKuliah.jurusan',
+            'reviewerValidator',
+            'lpmValidator',
+            'activityLogs.actor',
+            'latestReview.answers',
+            'latestReview.reviewer',
+        ]);
 
-        return view('reviewer.final-draft.show', compact('finalDraft'));
+        $hasActiveKriteria = ReviewAspek::active()
+            ->whereHas('activePertanyaans')
+            ->exists();
+
+        return view('reviewer.final-draft.show', compact('finalDraft', 'hasActiveKriteria'));
+    }
+
+    public function assess(FinalDraft $finalDraft)
+    {
+        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mereview final draft ini.');
+        }
+
+        if ($finalDraft->status !== 'pending_review') {
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('error', 'Final draft ini sudah dinilai dan tidak dapat dinilai ulang.');
+        }
+
+        $finalDraft->load(['mataKuliah.jurusan']);
+
+        $aspeks = ReviewAspek::active()
+            ->ordered()
+            ->with(['activePertanyaans' => fn ($q) => $q->ordered()])
+            ->get()
+            ->filter(fn ($aspek) => $aspek->activePertanyaans->isNotEmpty())
+            ->values();
+
+        $likertLabels = FinalDraftReview::LIKERT_LABELS;
+        $hasilOptions = FinalDraftReview::HASIL_OPTIONS;
+
+        return view('reviewer.final-draft.assess', compact(
+            'finalDraft',
+            'aspeks',
+            'likertLabels',
+            'hasilOptions'
+        ));
     }
 
     public function download(FinalDraft $finalDraft)
@@ -71,7 +113,6 @@ class FinalDraftController extends Controller
             abort(404, 'File tidak ditemukan.');
         }
 
-        // Blind review: unduhan memakai nama file anonim (tanpa nama penyusun)
         $extension = pathinfo($finalDraft->file_name, PATHINFO_EXTENSION);
         $anonymousName = 'FinalDraft_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . ($extension ? '.' . $extension : '');
 
@@ -84,52 +125,115 @@ class FinalDraftController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk memvalidasi draft ini.');
         }
 
+        if ($finalDraft->status !== 'pending_review') {
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('error', 'Final draft ini sudah dinilai dan tidak dapat dinilai ulang.');
+        }
+
+        $aspeks = ReviewAspek::active()
+            ->ordered()
+            ->with(['activePertanyaans' => fn ($q) => $q->ordered()])
+            ->get();
+
+        $pertanyaanIds = $aspeks->flatMap(fn ($a) => $a->activePertanyaans->pluck('id'))->values()->all();
+
+        if (empty($pertanyaanIds)) {
+            return redirect()->route('reviewer.final-draft.assess', $finalDraft)
+                ->with('error', 'Belum ada kriteria penilaian aktif. Hubungi admin untuk menambahkan aspek dan pertanyaan.');
+        }
+
+        $hasilKeys = array_keys(FinalDraftReview::HASIL_OPTIONS);
+
         $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'catatan_reviewer' => 'required_if:status,rejected|nullable|string|max:1000',
+            'hasil_penilaian' => ['required', Rule::in($hasilKeys)],
+            'catatan_revisi' => [
+                Rule::requiredIf(fn () => $request->hasil_penilaian !== FinalDraftReview::HASIL_SANGAT_LAYAK),
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+            'jawaban' => 'required|array',
+            'jawaban.*.skor' => 'required|integer|min:1|max:5',
+            'jawaban.*.catatan' => 'nullable|string|max:1000',
         ], [
-            'catatan_reviewer.required_if' => 'Catatan reviewer wajib diisi jika Anda menolak final draft.',
+            'hasil_penilaian.required' => 'Hasil penilaian wajib dipilih.',
+            'catatan_revisi.required' => 'Catatan revisi wajib diisi jika hasil bukan Sangat Layak.',
+            'jawaban.*.skor.required' => 'Setiap pertanyaan wajib diberi skor Likert 1–5.',
         ]);
 
+        foreach ($pertanyaanIds as $pertanyaanId) {
+            if (!isset($request->jawaban[$pertanyaanId]['skor'])) {
+                return redirect()->route('reviewer.final-draft.assess', $finalDraft)
+                    ->withInput()
+                    ->with('error', 'Semua pertanyaan aktif wajib dinilai.');
+            }
+        }
+
         try {
-            $statusNew = $request->status === 'approved' ? 'approved_by_reviewer' : 'rejected_by_reviewer';
+            DB::transaction(function () use ($request, $finalDraft, $aspeks) {
+                $hasil = $request->hasil_penilaian;
+                $isSangatLayak = $hasil === FinalDraftReview::HASIL_SANGAT_LAYAK;
+                $statusNew = $isSangatLayak ? 'approved_by_reviewer' : 'rejected_by_reviewer';
+                $catatanRevisi = $isSangatLayak ? null : $request->catatan_revisi;
 
-            $finalDraft->update([
-                'status' => $statusNew,
-                'catatan_reviewer' => $request->catatan_reviewer,
-                'reviewer_validated_at' => now(),
-                'reviewer_validated_by' => Auth::id(),
-            ]);
+                $review = FinalDraftReview::create([
+                    'final_draft_id' => $finalDraft->id,
+                    'reviewer_id' => Auth::id(),
+                    'hasil_penilaian' => $hasil,
+                    'catatan_revisi' => $catatanRevisi,
+                    'submitted_at' => now(),
+                ]);
 
-            FinalDraftActivityLog::create([
+                foreach ($aspeks as $aspek) {
+                    foreach ($aspek->activePertanyaans as $pertanyaan) {
+                        $jawaban = $request->jawaban[$pertanyaan->id] ?? [];
+                        $review->answers()->create([
+                            'review_pertanyaan_id' => $pertanyaan->id,
+                            'aspek_nama' => $aspek->nama,
+                            'teks_pertanyaan' => $pertanyaan->teks_pertanyaan,
+                            'skor' => (int) ($jawaban['skor'] ?? 0),
+                            'catatan' => $jawaban['catatan'] ?? null,
+                        ]);
+                    }
+                }
+
+                $finalDraft->update([
+                    'status' => $statusNew,
+                    'hasil_penilaian' => $hasil,
+                    'catatan_reviewer' => $catatanRevisi,
+                    'reviewer_validated_at' => now(),
+                    'reviewer_validated_by' => Auth::id(),
+                ]);
+
+                FinalDraftActivityLog::create([
+                    'final_draft_id' => $finalDraft->id,
+                    'actor_id' => Auth::id(),
+                    'actor_role' => 'reviewer',
+                    'action' => $hasil,
+                    'status_after' => $statusNew,
+                    'notes' => $catatanRevisi,
+                    'created_at' => now(),
+                ]);
+            });
+
+            Log::info('Final draft validated by Reviewer (Likert)', [
                 'final_draft_id' => $finalDraft->id,
-                'actor_id' => Auth::id(),
-                'actor_role' => 'reviewer',
-                'action' => $request->status,
-                'status_after' => $statusNew,
-                'notes' => $request->catatan_reviewer,
-                'created_at' => now(),
-            ]);
-
-            Log::info('Final draft validated by Reviewer', [
-                'final_draft_id' => $finalDraft->id,
-                'decision' => $statusNew,
+                'hasil_penilaian' => $request->hasil_penilaian,
                 'reviewer_id' => Auth::id(),
-                'reviewer_name' => Auth::user()->name
             ]);
 
-            $message = $request->status === 'approved' 
-                ? 'Final draft disetujui dan akan dilanjutkan ke LPM.' 
-                : 'Final draft ditolak dan dikembalikan ke penyusun untuk perbaikan.';
+            $message = $request->hasil_penilaian === FinalDraftReview::HASIL_SANGAT_LAYAK
+                ? 'Penilaian tersimpan. Final draft Sangat Layak dan dilanjutkan ke LPM.'
+                : 'Penilaian tersimpan. Final draft dikembalikan ke penyusun untuk perbaikan.';
 
-            return redirect()->route('reviewer.final-draft.index')
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
                 ->with('success', $message);
-                
         } catch (\Exception $e) {
             Log::error('Error validating final draft by Reviewer: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->with('error', 'Terjadi kesalahan saat memvalidasi final draft: ' . $e->getMessage());
+
+            return redirect()->route('reviewer.final-draft.assess', $finalDraft)
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan saat menyimpan penilaian: ' . $e->getMessage());
         }
     }
 }

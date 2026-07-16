@@ -19,18 +19,12 @@
                         <p class="text-sm text-gray-500">Uploaded: {{ $finalDraft->uploaded_at->format('d M Y H:i') }}</p>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <!-- Status Badge -->
-                        @if($finalDraft->status === 'pending')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Menunggu Validasi
-                            </span>
-                        @elseif($finalDraft->status === 'approved')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Disetujui
-                            </span>
-                        @elseif($finalDraft->status === 'rejected')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Ditolak
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $finalDraft->statusBadgeClass() }}">
+                            {{ $finalDraft->statusLabel() }}
+                        </span>
+                        @if($finalDraft->hasil_penilaian_label)
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {{ $finalDraft->hasil_penilaian_label }}
                             </span>
                         @endif
 
@@ -122,10 +116,23 @@
                                 <p class="text-sm text-purple-700">{{ $finalDraft->catatan_lpm }}</p>
                             </div>
                         @endif
+
+                        @if($finalDraft->catatan_reviewer)
+                            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h5 class="text-sm font-medium text-blue-800 mb-1">Catatan Reviewer</h5>
+                                <p class="text-sm text-blue-700">{{ $finalDraft->catatan_reviewer }}</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
+
+        @if($finalDraft->latestReview)
+            <div class="mt-6">
+                <x-final-draft-review-summary :review="$finalDraft->latestReview" />
+            </div>
+        @endif
 
         <div class="mt-6">
             <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="penyusun" />

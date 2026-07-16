@@ -41,30 +41,12 @@
                             <p class="text-xs sm:text-sm text-gray-500">Uploaded: {{ $finalDraft->uploaded_at->format('d M Y H:i') }}</p>
                         </div>
                         <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                            <!-- Status Badge -->
-                            @if($finalDraft->status === 'pending_review')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 self-start">
-                                    Menunggu Reviewer
-                                </span>
-                            @elseif($finalDraft->status === 'rejected_by_reviewer')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 self-start">
-                                    Ditolak Reviewer
-                                </span>
-                            @elseif($finalDraft->status === 'approved_by_reviewer')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 self-start">
-                                    Lolos Reviewer (Menunggu LPM)
-                                </span>
-                            @elseif($finalDraft->status === 'approved')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 self-start">
-                                    Disetujui
-                                </span>
-                            @elseif($finalDraft->status === 'rejected')
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 self-start">
-                                    Ditolak LPM
-                                </span>
-                            @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 self-start">
-                                    {{ $finalDraft->status }}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $finalDraft->statusBadgeClass() }} self-start">
+                                {{ $finalDraft->statusLabel() }}
+                            </span>
+                            @if($finalDraft->hasil_penilaian_label && $finalDraft->status === 'rejected_by_reviewer')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 self-start">
+                                    {{ $finalDraft->hasil_penilaian_label }}
                                 </span>
                             @endif
 
@@ -100,12 +82,12 @@
                         <!-- Reviewer Validation -->
                         <div class="border rounded-lg p-3 sm:p-4">
                             <h4 class="text-sm font-medium text-gray-900 mb-2">Validasi Reviewer</h4>
-                            @if(in_array($finalDraft->status, ['approved_by_reviewer', 'approved', 'rejected']))
+                            @if(in_array($finalDraft->status, ['approved_by_reviewer', 'pending_lpm', 'approved', 'rejected'], true))
                                 <div class="flex items-center">
                                     <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-xs sm:text-sm text-green-700">Sudah divalidasi</span>
+                                    <span class="text-xs sm:text-sm text-green-700">{{ $finalDraft->hasil_penilaian_label ?? 'Sudah divalidasi' }}</span>
                                 </div>
                                 @if($finalDraft->reviewer_validated_at)
                                     <p class="text-xs text-gray-500 mt-1">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
@@ -115,7 +97,7 @@
                                     <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                     </svg>
-                                    <span class="text-xs sm:text-sm text-red-700">Ditolak oleh Reviewer</span>
+                                    <span class="text-xs sm:text-sm text-red-700">{{ $finalDraft->hasil_penilaian_label ?? 'Perlu revisi dari Reviewer' }}</span>
                                 </div>
                                 @if($finalDraft->reviewer_validated_at)
                                     <p class="text-xs text-gray-500 mt-1">{{ $finalDraft->reviewer_validated_at->format('d M Y H:i') }}</p>
@@ -153,11 +135,11 @@
                                 <p class="text-xs text-gray-500">{{ $finalDraft->lpm_validated_at->format('d M Y H:i') }}</p>
                             @else
                                 <div class="flex items-center">
-                                    @if(in_array($finalDraft->status, ['approved_by_reviewer']))
+                                    @if($finalDraft->isAwaitingLpm())
                                         <svg class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                         </svg>
-                                        <span class="text-xs sm:text-sm text-yellow-700">Menunggu validasi LPM</span>
+                                        <span class="text-xs sm:text-sm text-yellow-700">{{ $finalDraft->status === 'pending_lpm' ? 'Menunggu validasi LPM (revisi)' : 'Menunggu validasi LPM' }}</span>
                                     @else
                                         <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>

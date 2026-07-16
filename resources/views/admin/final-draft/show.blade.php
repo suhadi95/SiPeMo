@@ -19,18 +19,12 @@
                         <p class="text-sm text-gray-500">Uploaded: {{ $finalDraft->uploaded_at->format('d M Y H:i') }}</p>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                        <!-- Status Badge -->
-                        @if($finalDraft->status === 'pending')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 self-start">
-                                Menunggu Validasi
-                            </span>
-                        @elseif($finalDraft->status === 'approved')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 self-start">
-                                Disetujui
-                            </span>
-                        @elseif($finalDraft->status === 'rejected')
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 self-start">
-                                Ditolak
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $finalDraft->statusBadgeClass() }} self-start">
+                            {{ $finalDraft->statusLabel() }}
+                        </span>
+                        @if($finalDraft->hasil_penilaian_label)
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 self-start">
+                                {{ $finalDraft->hasil_penilaian_label }}
                             </span>
                         @endif
 
@@ -160,6 +154,12 @@
                 </div>
             </div>
         </div>
+
+        @if($finalDraft->latestReview)
+            <div class="mt-4 sm:mt-6">
+                <x-final-draft-review-summary :review="$finalDraft->latestReview" />
+            </div>
+        @endif
 
         <div class="mt-4 sm:mt-6">
             <x-final-draft-activity-log :logs="$finalDraft->activityLogs" viewer="admin" />

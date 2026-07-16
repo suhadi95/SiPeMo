@@ -52,7 +52,8 @@
                                 <option value="">Semua Status</option>
                                 <option value="pending_review" {{ request('status') == 'pending_review' ? 'selected' : '' }}>Menunggu Reviewer</option>
                                 <option value="approved_by_reviewer" {{ request('status') == 'approved_by_reviewer' ? 'selected' : '' }}>Lolos Reviewer</option>
-                                <option value="rejected_by_reviewer" {{ request('status') == 'rejected_by_reviewer' ? 'selected' : '' }}>Ditolak Reviewer</option>
+                                <option value="rejected_by_reviewer" {{ request('status') == 'rejected_by_reviewer' ? 'selected' : '' }}>Perlu Revisi (Reviewer)</option>
+                                <option value="pending_lpm" {{ request('status') == 'pending_lpm' ? 'selected' : '' }}>Menunggu LPM (revisi)</option>
                                 <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui LPM</option>
                                 <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak LPM</option>
                             </select>
@@ -108,22 +109,20 @@
                                         {{ $draft->uploaded_at->format('d M Y H:i') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($draft->status === 'pending_review')
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Menunggu Reviewer</span>
-                                        @elseif($draft->status === 'approved_by_reviewer')
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Lolos Reviewer</span>
-                                        @elseif($draft->status === 'rejected_by_reviewer')
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Ditolak Reviewer</span>
-                                        @elseif($draft->status === 'approved')
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Disetujui LPM</span>
-                                        @elseif($draft->status === 'rejected')
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Ditolak LPM</span>
-                                        @else
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ $draft->status }}</span>
+                                        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium {{ $draft->statusBadgeClass() }}">
+                                            {{ $draft->statusLabel() }}
+                                        </span>
+                                        @if($draft->hasil_penilaian_label)
+                                            <div class="text-xs text-indigo-600 mt-1">{{ $draft->hasil_penilaian_label }}</div>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('reviewer.final-draft.show', $draft) }}" class="text-indigo-600 hover:text-indigo-900">Review & Tindakan</a>
+                                        <div class="flex flex-col gap-1">
+                                            <a href="{{ route('reviewer.final-draft.show', $draft) }}" class="text-indigo-600 hover:text-indigo-900">Detail Draft</a>
+                                            @if($draft->status === 'pending_review')
+                                                <a href="{{ route('reviewer.final-draft.assess', $draft) }}" class="text-blue-600 hover:text-blue-900 font-medium">Isi Penilaian</a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

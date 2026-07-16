@@ -23,6 +23,7 @@ class FinalDraft extends Model
         'reviewer_validated_at',
         'reviewer_validated_by',
         'catatan_reviewer',
+        'hasil_penilaian',
     ];
 
     protected $casts = [
@@ -79,5 +80,54 @@ class FinalDraft extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(FinalDraftActivityLog::class)->orderByDesc('created_at');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(FinalDraftReview::class)->orderByDesc('submitted_at');
+    }
+
+    public function latestReview()
+    {
+        return $this->hasOne(FinalDraftReview::class)->latestOfMany('submitted_at');
+    }
+
+    public function getHasilPenilaianLabelAttribute(): ?string
+    {
+        if (!$this->hasil_penilaian) {
+            return null;
+        }
+
+        return FinalDraftReview::HASIL_OPTIONS[$this->hasil_penilaian] ?? $this->hasil_penilaian;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status) {
+            'pending_review' => 'Menunggu Reviewer',
+            'rejected_by_reviewer' => 'Perlu Revisi (Reviewer)',
+            'approved_by_reviewer' => 'Lolos Reviewer (Menunggu LPM)',
+            'pending_lpm' => 'Menunggu Validasi LPM (revisi)',
+            'approved' => 'Disetujui LPM',
+            'rejected' => 'Ditolak LPM',
+            'pending' => 'Menunggu',
+            default => $this->status,
+        };
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            'pending_review', 'pending_lpm', 'pending' => 'bg-yellow-100 text-yellow-800',
+            'approved_by_reviewer' => 'bg-blue-100 text-blue-800',
+            'approved' => 'bg-green-100 text-green-800',
+            'rejected_by_reviewer', 'rejected' => 'bg-red-100 text-red-800',
+            default => 'bg-gray-100 text-gray-800',
+        };
+    }
+
+    public function isAwaitingLpm(): bool
+    {
+        return in_array($this->status, ['approved_by_reviewer', 'pending_lpm'], true);
     }
 }

@@ -171,31 +171,9 @@
                                                     @endphp
                                                     
                                                     @if($finalDraft)
-                                                        @if($finalDraft->status == 'approved')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                Disetujui
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'rejected')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                                Ditolak LPM
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'pending_review')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                                Review Reviewer
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'rejected_by_reviewer')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                                Ditolak Reviewer
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'approved_by_reviewer')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                                Menunggu Validasi LPM
-                                                            </span>
-                                                        @else
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                                {{ $finalDraft->status }}
-                                                            </span>
-                                                        @endif
+                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $finalDraft->statusBadgeClass() }}">
+                                                            {{ $finalDraft->statusLabel() }}
+                                                        </span>
                                                     @elseif($allTahapsValidated)
                                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                                             Siap Upload
@@ -207,7 +185,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    @if($finalDraft && in_array($finalDraft->status, ['approved_by_reviewer', 'approved', 'rejected']))
+                                                    @if($finalDraft && in_array($finalDraft->status, ['approved_by_reviewer', 'pending_lpm', 'approved', 'rejected'], true))
                                                         <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                                                             <a href="{{ route('lpm.final-draft.show', $finalDraft) }}"
                                                                class="inline-block px-3 py-1 sm:px-4 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-semibold rounded-md hover:bg-indigo-700 transition text-center">

@@ -38,7 +38,7 @@ class FinalDraftController extends Controller
 
         // Ambil final draft yang sudah diupload
         $finalDraft = FinalDraft::where('penyusun_application_id', $application->id)
-            ->with(['mataKuliah', 'lpmValidator', 'activityLogs.actor'])
+            ->with(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers'])
             ->first();
 
         return view('penyusun.final-draft.index', compact('application', 'finalDraft'));
@@ -68,7 +68,7 @@ class FinalDraftController extends Controller
         // Cek apakah sudah ada final draft
         $existingFinalDraft = FinalDraft::where('penyusun_application_id', $application->id)->first();
         
-        if ($existingFinalDraft && !in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'])) {
+        if ($existingFinalDraft && !in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'], true)) {
             return redirect()->route('penyusun.final-draft.index')
                 ->with('error', 'Final draft sudah pernah diupload dan masih dalam proses validasi.');
         }
@@ -116,7 +116,7 @@ class FinalDraftController extends Controller
             // Cek apakah sudah ada final draft
             $existingFinalDraft = FinalDraft::where('penyusun_application_id', $application->id)->first();
             
-            if ($existingFinalDraft && !in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'])) {
+            if ($existingFinalDraft && !in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'], true)) {
                 if ($request->ajax()) {
                     return response()->json([
                         'success' => false,
@@ -237,27 +237,48 @@ class FinalDraftController extends Controller
             }
 
             // Buat atau update final draft
-            if ($existingFinalDraft && in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer'])) {
-                // Update final draft yang ditolak
-                $existingFinalDraft->update([
-                    'judul_modul' => $request->judul_modul,
-                    'deskripsi_modul' => $request->deskripsi_modul,
-                    'file_path' => $filePath,
-                    'file_name' => $fileName,
-                    'status' => 'pending_review',
-                    'uploaded_at' => now(),
-                    'catatan_reviewer' => null,
-                    'reviewer_validated_at' => null,
-                    'reviewer_validated_by' => null,
-                    'catatan_lpm' => null,
-                    'lpm_validated_at' => null,
-                    'lpm_validated_by' => null,
-                ]);
-                
+            $previousStatus = $existingFinalDraft?->status;
+            $wasResubmit = $existingFinalDraft && in_array($previousStatus, ['rejected', 'rejected_by_reviewer'], true);
+
+            if ($wasResubmit) {
+                if ($previousStatus === 'rejected_by_reviewer') {
+                    // Revisi setelah review → kembali antrean reviewer
+                    $existingFinalDraft->update([
+                        'judul_modul' => $request->judul_modul,
+                        'deskripsi_modul' => $request->deskripsi_modul,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => 'pending_review',
+                        'uploaded_at' => now(),
+                        'catatan_reviewer' => null,
+                        'hasil_penilaian' => null,
+                        'reviewer_validated_at' => null,
+                        'reviewer_validated_by' => null,
+                        'catatan_lpm' => null,
+                        'lpm_validated_at' => null,
+                        'lpm_validated_by' => null,
+                    ]);
+                } else {
+                    // Revisi setelah tolak LPM → langsung kembali ke LPM (tanpa ulang reviewer)
+                    $existingFinalDraft->update([
+                        'judul_modul' => $request->judul_modul,
+                        'deskripsi_modul' => $request->deskripsi_modul,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => 'pending_lpm',
+                        'uploaded_at' => now(),
+                        'catatan_lpm' => null,
+                        'lpm_validated_at' => null,
+                        'lpm_validated_by' => null,
+                    ]);
+                }
+
                 $finalDraft = $existingFinalDraft;
-                
+
                 Log::info('Final draft berhasil diupdate (resubmit)', [
                     'final_draft_id' => $finalDraft->id,
+                    'previous_status' => $previousStatus,
+                    'new_status' => $finalDraft->status,
                     'file_name' => $fileName,
                     'file_path' => $filePath,
                     'penyusun' => $application->nama_penyusun
@@ -274,7 +295,7 @@ class FinalDraftController extends Controller
                     'status' => 'pending_review',
                     'uploaded_at' => now(),
                 ]);
-                
+
                 Log::info('Final draft berhasil dibuat', [
                     'final_draft_id' => $finalDraft->id,
                     'file_name' => $fileName,
@@ -284,10 +305,14 @@ class FinalDraftController extends Controller
             }
 
             if ($request->ajax()) {
-                $message = $existingFinalDraft && in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer']) 
-                    ? 'Final draft berhasil diupload ulang dan sedang menunggu review.'
-                    : 'Final draft berhasil diupload dan sedang menunggu review.';
-                    
+                if ($wasResubmit && $previousStatus === 'rejected') {
+                    $message = 'Final draft berhasil diupload ulang dan sedang menunggu validasi LPM.';
+                } elseif ($wasResubmit) {
+                    $message = 'Final draft berhasil diupload ulang dan sedang menunggu review reviewer.';
+                } else {
+                    $message = 'Final draft berhasil diupload dan sedang menunggu review.';
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => $message,
@@ -295,7 +320,7 @@ class FinalDraftController extends Controller
                 ]);
             }
 
-            $successMessage = $existingFinalDraft && in_array($existingFinalDraft->status, ['rejected', 'rejected_by_reviewer']) 
+            $successMessage = $wasResubmit
                 ? 'Final draft berhasil diupload ulang dengan nama file: ' . $fileName
                 : 'Final draft berhasil diupload dengan nama file: ' . $fileName;
 
@@ -333,7 +358,7 @@ class FinalDraftController extends Controller
             abort(403, 'Anda tidak memiliki akses ke final draft ini.');
         }
 
-        $finalDraft->load(['mataKuliah', 'lpmValidator', 'activityLogs.actor']);
+        $finalDraft->load(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers']);
 
         return view('penyusun.final-draft.show', compact('finalDraft'));
     }

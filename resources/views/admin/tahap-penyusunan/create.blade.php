@@ -1,20 +1,16 @@
 @extends('layouts.app')
 
 @section('header')
-<div class="py-6">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Buat Periode Tahap Penyusunan') }}
-        </h2>
-    </div>
-</div>
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        {{ __('Buat Periode Tahap Penyusunan') }}
+    </h2>
 @endsection
 
 @section('content')
-<div class="py-12">
+<div class="py-6">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 text-gray-900">
+            <div class="p-4 sm:p-6 text-gray-900">
                 <form method="POST" action="{{ route('admin.tahap-penyusunan.store') }}">
                     @csrf
                     
@@ -114,13 +110,13 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-4">
+                    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-4">
                         <a href="{{ route('admin.tahap-penyusunan.index') }}" 
-                           class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                           class="inline-flex justify-center bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                             Batal
                         </a>
                         <button type="submit" 
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                class="inline-flex justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Buat Periode Tahap Penyusunan
                         </button>
                     </div>
