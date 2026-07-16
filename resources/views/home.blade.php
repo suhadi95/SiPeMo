@@ -51,7 +51,7 @@
             <section class="max-w-7xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
                 <div>
                     <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Selamat datang di SiPeMo</h1>
-                    <p class="mt-4 text-gray-600 leading-relaxed">Sistem Penyusunan Modul (SiPeMo) adalah platform digital untuk mengelola proses penyusunan modul pembelajaran secara terstruktur dan efisien. Sistem ini mendukung tiga peran pengguna: Admin untuk validasi dan manajemen sistem, Penyusun untuk mengupload modul secara bertahap, dan LPM untuk monitoring dan evaluasi.</p>
+                    <p class="mt-4 text-gray-600 leading-relaxed">Sistem Penyusunan Modul (SiPeMo) adalah platform digital untuk mengelola proses penyusunan modul pembelajaran secara terstruktur dan efisien. Sistem ini mendukung empat peran pengguna: Admin untuk validasi dan manajemen sistem, Penyusun untuk mengupload modul secara bertahap, Reviewer untuk penilaian kualitas final draft, dan LPM untuk validasi akhir sebelum publikasi.</p>
                     <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <a href="{{ route('progres-penyusunan') }}" class="px-5 py-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 transition shadow-sm">Progres Penyusunan</a>
                         <a href="{{ route('penyusun.apply.create') }}" class="px-5 py-2.5 rounded-full bg-green-50 text-green-700 ring-1 ring-green-200 hover:bg-green-100 transition shadow-sm">Daftar Penyusun</a>
@@ -86,8 +86,8 @@
                         </div>
                         <div class="bg-white rounded-xl ring-1 ring-green-100 p-5 shadow-sm h-full">
                             <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">3</div>
-                            <h3 class="mt-4 font-semibold">Final Draft & Publikasi</h3>
-                            <p class="text-sm text-gray-600 mt-1">Proses finalisasi modul dengan draft akhir dan publikasi untuk penggunaan pembelajaran.</p>
+                            <h3 class="mt-4 font-semibold">Review & Validasi Final Draft</h3>
+                            <p class="text-sm text-gray-600 mt-1">Final draft dinilai oleh Reviewer (blind review), lalu divalidasi LPM sebelum masuk tahap publikasi.</p>
                         </div>
                         <div class="bg-white rounded-xl ring-1 ring-green-100 p-5 shadow-sm h-full">
                             <div class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">4</div>

@@ -22,8 +22,8 @@
                             </div>
                         </div>
                         <div class="ml-3 md:ml-4">
-                            <p class="text-xs md:text-sm font-medium text-gray-500">Menunggu Validasi</p>
-                            <p class="text-lg md:text-2xl font-semibold text-gray-900">{{ $finalDrafts->where('status', 'pending')->count() }}</p>
+                            <p class="text-xs md:text-sm font-medium text-gray-500">Dalam Proses</p>
+                            <p class="text-lg md:text-2xl font-semibold text-gray-900">{{ $finalDrafts->whereIn('status', ['pending_review', 'approved_by_reviewer', 'pending_lpm', 'pending', 'rejected_by_reviewer'])->count() }}</p>
                         </div>
                     </div>
                 </div>
@@ -40,7 +40,7 @@
                             </div>
                         </div>
                         <div class="ml-3 md:ml-4">
-                            <p class="text-xs md:text-sm font-medium text-gray-500">Disetujui</p>
+                            <p class="text-xs md:text-sm font-medium text-gray-500">Disetujui LPM</p>
                             <p class="text-lg md:text-2xl font-semibold text-gray-900">{{ $finalDrafts->where('status', 'approved')->count() }}</p>
                         </div>
                     </div>
@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         <div class="ml-3 md:ml-4">
-                            <p class="text-xs md:text-sm font-medium text-gray-500">Ditolak</p>
+                            <p class="text-xs md:text-sm font-medium text-gray-500">Ditolak LPM</p>
                             <p class="text-lg md:text-2xl font-semibold text-gray-900">{{ $finalDrafts->where('status', 'rejected')->count() }}</p>
                         </div>
                     </div>
@@ -98,7 +98,7 @@
                             Monitoring Admin
                         </h3>
                         <div class="mt-2 text-sm text-purple-700">
-                            <p>Pantau perkembangan penyusunan modul dari berbagai jurusan. Fokus pada status final draft dan kesiapan publikasi.</p>
+                            <p>Pantau perkembangan final draft dari berbagai jurusan. Alur: Reviewer menilai terlebih dahulu, lalu LPM melakukan validasi akhir sebelum publikasi.</p>
                         </div>
                     </div>
                 </div>
@@ -123,9 +123,12 @@
                                 <option value="">Semua Status</option>
                                 <option value="belum_tersedia" {{ request('status') == 'belum_tersedia' ? 'selected' : '' }}>Belum Tersedia</option>
                                 <option value="siap_upload" {{ request('status') == 'siap_upload' ? 'selected' : '' }}>Siap Upload</option>
-                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu Validasi LPM</option>
-                                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui</option>
-                                <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
+                                <option value="pending_review" {{ request('status') == 'pending_review' ? 'selected' : '' }}>Menunggu Reviewer</option>
+                                <option value="rejected_by_reviewer" {{ request('status') == 'rejected_by_reviewer' ? 'selected' : '' }}>Perlu Revisi (Reviewer)</option>
+                                <option value="approved_by_reviewer" {{ request('status') == 'approved_by_reviewer' ? 'selected' : '' }}>Lolos Reviewer (Menunggu LPM)</option>
+                                <option value="pending_lpm" {{ request('status') == 'pending_lpm' ? 'selected' : '' }}>Menunggu Validasi LPM (revisi)</option>
+                                <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui LPM</option>
+                                <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak LPM</option>
                             </select>
                         </div>
 
@@ -259,25 +262,9 @@
                                                     @endphp
                                                     
                                                     @if($finalDraft)
-                                                        @if($finalDraft->status == 'approved')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                Disetujui
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'rejected')
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                                Ditolak
-                                                            </span>
-                                                        @elseif($finalDraft->status == 'pending')
-                                                            @if($finalDraft->isLpmValidated())
-                                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                    Disetujui
-                                                                </span>
-                                                            @else
-                                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                                    Menunggu Validasi LPM
-                                                                </span>
-                                                            @endif
-                                                        @endif
+                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $finalDraft->statusBadgeClass() }}">
+                                                            {{ $finalDraft->statusLabel() }}
+                                                        </span>
                                                     @elseif($allTahapsValidated)
                                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                                             Siap Upload

@@ -80,7 +80,7 @@
                         </h3>
                         <div class="mt-2 text-sm text-blue-700">
                             <ul class="list-disc list-inside space-y-1">
-                                <li>Pastikan final draft sudah disetujui oleh admin dan LPM sebelum upload publikasi</li>
+                                <li>Pastikan final draft sudah lolos Reviewer dan disetujui LPM sebelum upload publikasi</li>
                                 <li>Siapkan file final modul (PDF/DOC/DOCX) dan sertifikat HKI (PDF/JPG/PNG)</li>
                                 <li>Informasi rekening harus sesuai dengan nama di buku tabungan</li>
                                 <li>Proses validasi publikasi membutuhkan waktu 1-3 hari kerja</li>
@@ -106,9 +106,7 @@
                             @php
                                 $finalDraft = $application->finalDrafts->first();
                                 $publication = $application->publicationModuls->first();
-                                $canPublish = $finalDraft && 
-                                    (($finalDraft->status == 'approved') || 
-                                     ($finalDraft->status == 'pending' && $finalDraft->isLpmValidated()));
+                                $canPublish = $finalDraft && $finalDraft->status === 'approved';
                             @endphp
                             
                             <div class="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
@@ -133,27 +131,27 @@
                                             <div class="block sm:hidden space-y-3">
                                                 <!-- Step 1: Final Draft -->
                                                 <div class="flex items-center space-x-2">
-                                                    @if($finalDraft && (($finalDraft->status == 'approved') || ($finalDraft->status == 'pending' && $finalDraft->isLpmValidated())))
+                                                    @if($finalDraft && $finalDraft->status === 'approved')
                                                         <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
                                                         <span class="text-sm text-green-600 font-medium">Final Draft OK</span>
-                                                    @elseif($finalDraft && $finalDraft->status == 'rejected')
+                                                    @elseif($finalDraft && in_array($finalDraft->status, ['rejected', 'rejected_by_reviewer'], true))
                                                         <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
-                                                        <span class="text-sm text-red-600 font-medium">Final Draft Ditolak</span>
+                                                        <span class="text-sm text-red-600 font-medium">{{ $finalDraft->statusLabel() }}</span>
                                                     @elseif($finalDraft)
                                                         <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
-                                                        <span class="text-sm text-yellow-600 font-medium">Menunggu Validasi</span>
+                                                        <span class="text-sm text-yellow-600 font-medium">{{ $finalDraft->statusLabel() }}</span>
                                                     @else
                                                         <div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                                                             <span class="text-xs text-gray-600">1</span>
@@ -205,27 +203,27 @@
                                             <div class="hidden sm:flex items-center space-x-2">
                                                 <!-- Step 1: Final Draft -->
                                                 <div class="flex items-center space-x-2">
-                                                    @if($finalDraft && (($finalDraft->status == 'approved') || ($finalDraft->status == 'pending' && $finalDraft->isLpmValidated())))
+                                                    @if($finalDraft && $finalDraft->status === 'approved')
                                                         <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
                                                         <span class="text-sm text-green-600 font-medium">Final Draft OK</span>
-                                                    @elseif($finalDraft && $finalDraft->status == 'rejected')
+                                                    @elseif($finalDraft && in_array($finalDraft->status, ['rejected', 'rejected_by_reviewer'], true))
                                                         <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
-                                                        <span class="text-sm text-red-600 font-medium">Final Draft Ditolak</span>
+                                                        <span class="text-sm text-red-600 font-medium">{{ $finalDraft->statusLabel() }}</span>
                                                     @elseif($finalDraft)
                                                         <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
                                                             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                                             </svg>
                                                         </div>
-                                                        <span class="text-sm text-yellow-600 font-medium">Menunggu Validasi</span>
+                                                        <span class="text-sm text-yellow-600 font-medium">{{ $finalDraft->statusLabel() }}</span>
                                                     @else
                                                         <div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
                                                             <span class="text-xs text-gray-600">1</span>
@@ -349,7 +347,7 @@
                     <div class="space-y-3">
                         <div class="border-l-4 border-blue-500 pl-4">
                             <h4 class="text-sm font-medium text-gray-900">Final Draft Belum Disetujui?</h4>
-                            <p class="text-sm text-gray-600 mt-1">Pastikan Anda sudah mengupload final draft dan menunggu validasi dari admin dan LPM.</p>
+                            <p class="text-sm text-gray-600 mt-1">Pastikan Anda sudah mengupload final draft, lolos penilaian Reviewer, dan disetujui LPM.</p>
                         </div>
                         
                         <div class="border-l-4 border-green-500 pl-4">
@@ -378,7 +376,7 @@
                     <div class="space-y-4">
                         <div>
                             <h4 class="text-sm font-medium text-gray-900">Kapan saya bisa upload publikasi?</h4>
-                            <p class="text-sm text-gray-600 mt-1">Setelah final draft Anda disetujui oleh admin dan LPM, tombol "Upload Publikasi" akan muncul.</p>
+                            <p class="text-sm text-gray-600 mt-1">Setelah final draft Anda lolos Reviewer dan disetujui LPM, tombol "Upload Publikasi" akan muncul.</p>
                         </div>
                         
                         <div>

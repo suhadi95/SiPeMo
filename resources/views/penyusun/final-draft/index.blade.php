@@ -23,7 +23,7 @@
                             Informasi Final Draft
                         </h3>
                         <div class="mt-2 text-xs sm:text-sm text-purple-700">
-                            <p>Final draft akan divalidasi oleh LPM. Pastikan semua 6 tahap penyusunan sudah divalidasi sebelum mengupload final draft.</p>
+                            <p>Final draft akan dinilai oleh Reviewer terlebih dahulu, lalu divalidasi oleh LPM. Pastikan semua tahap penyusunan sudah divalidasi sebelum mengupload final draft.</p>
                         </div>
                     </div>
                 </div>

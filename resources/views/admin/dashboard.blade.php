@@ -40,7 +40,12 @@
                 $modulDalamProses = \App\Models\Modul::where('status', 'pending')->count();
                 
                 $totalFinalModul = \App\Models\FinalDraft::where('status', 'approved')->whereNotNull('lpm_validated_at')->count();
-                $finalModulPending = \App\Models\FinalDraft::where('status', 'pending')->orWhereNull('lpm_validated_at')->count();
+                $finalModulPending = \App\Models\FinalDraft::whereIn('status', [
+                    'pending_review',
+                    'approved_by_reviewer',
+                    'pending_lpm',
+                    'pending',
+                ])->count();
                 
                 $totalPublikasiModul = \App\Models\PublicationModul::where('status', 'approved')->whereNotNull('validated_at')->count();
                 $publikasiModulPending = \App\Models\PublicationModul::where('status', 'pending')->orWhereNull('validated_at')->count();
@@ -310,20 +315,20 @@
                         <strong>Sistem Penyusunan Modul (SiPeMo)</strong> adalah platform digital untuk mengelola proses penyusunan modul pembelajaran secara terstruktur dan efisien.
                     </p>
                     <ul class="text-xs sm:text-sm text-gray-600 space-y-1">
-                        <li>• <strong>Pendaftaran Penyusun:</strong> Dosen dapat mendaftar sebagai penyusun modul</li>
+                        <li>• <strong>Pendaftaran:</strong> Dosen dapat mendaftar sebagai Penyusun atau Reviewer</li>
                         <li>• <strong>Proses Bertahap:</strong> Penyusunan modul dilakukan dalam tahap-tahap yang terstruktur</li>
                         <li>• <strong>Validasi Admin:</strong> Setiap modul divalidasi oleh admin sebelum disetujui</li>
-                        <li>• <strong>Publikasi:</strong> Modul yang telah disetujui dapat dipublikasikan</li>
+                        <li>• <strong>Review & Publikasi:</strong> Final draft dinilai Reviewer, divalidasi LPM, lalu dipublikasikan</li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-medium text-gray-900 mb-2 text-sm sm:text-base">Fitur Utama</h4>
                     <ul class="text-xs sm:text-sm text-gray-600 space-y-1">
                         <li>• <strong>Sistem Tahap Otomatis:</strong> Tahap penyusunan berjalan otomatis berdasarkan tanggal</li>
-                        <li>• <strong>Multi-Role:</strong> Admin, Penyusun, dan LPM dengan akses berbeda</li>
+                        <li>• <strong>Multi-Role:</strong> Admin, Penyusun, Reviewer, dan LPM dengan akses berbeda</li>
                         <li>• <strong>Manajemen File:</strong> Upload dan download dokumen modul</li>
                         <li>• <strong>Monitoring:</strong> Pelacakan progres penyusunan secara real-time</li>
-                        <li>• <strong>Validasi Bertingkat:</strong> Admin dan LPM dapat memvalidasi modul</li>
+                        <li>• <strong>Validasi Bertingkat:</strong> Admin (modul), Reviewer (final draft), dan LPM (validasi akhir)</li>
                         <li>• <strong>Bahasa Indonesia:</strong> Interface dalam bahasa Indonesia dengan zona waktu WIB</li>
                     </ul>
                 </div>

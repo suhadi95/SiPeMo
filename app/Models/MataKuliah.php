@@ -49,4 +49,16 @@ class MataKuliah extends Model
     {
         return $this->hasMany(PenyusunApplication::class, 'mata_kuliah_id');
     }
+
+    /**
+     * Jumlah bab modul sesuai ketentuan: 2 SKS = 6 bab, 3 SKS = 9 bab.
+     */
+    public function jumlahBab(): ?int
+    {
+        if (!$this->sks) {
+            return null;
+        }
+
+        return (int) $this->sks * 3;
+    }
 }

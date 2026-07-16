@@ -180,6 +180,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/final-draft/report/excel', [AdminFinalDraftController::class, 'reportExcel'])->name('admin.final-draft.report.excel');
     Route::get('/admin/final-draft/{finalDraft}', [AdminFinalDraftController::class, 'show'])->name('admin.final-draft.show');
     Route::get('/admin/final-draft/{finalDraft}/download', [AdminFinalDraftController::class, 'download'])->name('admin.final-draft.download');
+    Route::get('/admin/final-draft/{finalDraft}/validation-report/pdf', [AdminFinalDraftController::class, 'validationReportPdf'])->name('admin.final-draft.validation-report.pdf');
 
     // Admin publication
     Route::get('/admin/publication', [AdminPublicationController::class, 'index'])->name('admin.publication.index');
@@ -316,7 +317,10 @@ Route::middleware(['auth', 'reviewer'])->group(function () {
     Route::get('/reviewer/final-draft', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'index'])->name('reviewer.final-draft.index');
     Route::get('/reviewer/final-draft/{finalDraft}', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'show'])->name('reviewer.final-draft.show');
     Route::get('/reviewer/final-draft/{finalDraft}/penilaian', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'assess'])->name('reviewer.final-draft.assess');
+    Route::get('/reviewer/final-draft/{finalDraft}/laporan-validasi', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'validationReportForm'])->name('reviewer.final-draft.validation-report.form');
+    Route::post('/reviewer/final-draft/{finalDraft}/laporan-validasi', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'storeValidationReport'])->name('reviewer.final-draft.validation-report.store');
     Route::get('/reviewer/final-draft/{finalDraft}/download', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'download'])->name('reviewer.final-draft.download');
+    Route::get('/reviewer/final-draft/{finalDraft}/validation-report/pdf', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'validationReportPdf'])->name('reviewer.final-draft.validation-report.pdf');
     Route::post('/reviewer/final-draft/{finalDraft}/validate', [\App\Http\Controllers\Reviewer\FinalDraftController::class, 'validateDraft'])->name('reviewer.final-draft.validate');
 });
 

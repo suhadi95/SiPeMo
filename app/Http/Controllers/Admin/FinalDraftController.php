@@ -97,14 +97,21 @@ class FinalDraftController extends Controller
         $allTahapsValidated = $penyusun->moduls->where('status', 'approved')->count() >= 6;
 
         if ($finalDraft) {
-            if ($finalDraft->status === 'approved') {
-                return 'approved';
+            // Status pipeline saat ini (reviewer → LPM)
+            if (in_array($finalDraft->status, [
+                'pending_review',
+                'rejected_by_reviewer',
+                'approved_by_reviewer',
+                'pending_lpm',
+                'approved',
+                'rejected',
+            ], true)) {
+                return $finalDraft->status;
             }
-            if ($finalDraft->status === 'rejected') {
-                return 'rejected';
-            }
+
+            // Legacy status pending
             if ($finalDraft->status === 'pending') {
-                return $finalDraft->isLpmValidated() ? 'approved' : 'pending';
+                return $finalDraft->isLpmValidated() ? 'approved' : 'pending_review';
             }
         }
 
@@ -131,6 +138,43 @@ class FinalDraftController extends Controller
         return response()->download(Storage::disk('public')->path($finalDraft->file_path), $finalDraft->file_name);
     }
 
+    public function validationReportPdf(FinalDraft $finalDraft)
+    {
+        $finalDraft->load([
+            'mataKuliah.jurusan',
+            'penyusunApplication',
+            'latestReview.answers',
+            'latestReview.reviewer',
+        ]);
+
+        $review = $finalDraft->latestReview;
+
+        if (!$review || !$review->requiresValidationReport()) {
+            return redirect()->route('admin.final-draft.show', $finalDraft)
+                ->with('error', 'Laporan validasi PDF hanya tersedia untuk penilaian Sangat Layak.');
+        }
+
+        if (!$review->hasCompletedValidationReport()) {
+            return redirect()->route('admin.final-draft.show', $finalDraft)
+                ->with('error', 'Laporan validasi belum dilengkapi oleh reviewer.');
+        }
+
+        $pdf = Pdf::loadView('pdf.final-draft-validation-report', [
+            'finalDraft' => $finalDraft,
+            'review' => $review,
+            'likertLabels' => \App\Models\FinalDraftReview::LIKERT_LABELS,
+            'hasilOptions' => \App\Models\FinalDraftReview::HASIL_OPTIONS,
+        ])->setPaper('a4', 'portrait')->setOptions([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+        ]);
+
+        $fileName = 'Form_Validasi_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
     /**
      * Download laporan akhir Monitoring Final Draft Modul dalam format PDF.
      * Data: semua pengusul (penyusun) yang sudah disetujui, termasuk yang belum upload / belum memulai.
@@ -145,7 +189,16 @@ class FinalDraftController extends Controller
         $total = $penyusuns->count();
         $approved = $penyusuns->filter(fn ($p) => $p->finalDrafts->first()?->status === 'approved')->count();
         $rejected = $penyusuns->filter(fn ($p) => $p->finalDrafts->first()?->status === 'rejected')->count();
-        $pending = $penyusuns->filter(fn ($p) => ($fd = $p->finalDrafts->first()) && $fd->status === 'pending')->count();
+        $pending = $penyusuns->filter(function ($p) {
+            $fd = $p->finalDrafts->first();
+            return $fd && in_array($fd->status, [
+                'pending_review',
+                'rejected_by_reviewer',
+                'approved_by_reviewer',
+                'pending_lpm',
+                'pending',
+            ], true);
+        })->count();
         $belumUpload = $penyusuns->filter(fn ($p) => $p->finalDrafts->isEmpty())->count();
 
         $byJurusan = $penyusuns->groupBy(function (PenyusunApplication $p) {

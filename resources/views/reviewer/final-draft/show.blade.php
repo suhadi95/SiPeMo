@@ -195,6 +195,42 @@
                                 <p class="text-xs text-gray-500">Belum masuk antrean LPM.</p>
                             @endif
                         </div>
+
+                        @if($finalDraft->latestReview?->requiresValidationReport())
+                            <div class="border-t border-gray-200 pt-4 space-y-2">
+                                <h4 class="text-xs font-semibold text-gray-500 uppercase">Laporan Validasi</h4>
+
+                                @if(!$finalDraft->latestReview->hasCompletedValidationReport())
+                                    <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                                        Penilaian <strong>Sangat Layak</strong> sudah tersimpan. Lengkapi form laporan validasi untuk menghasilkan PDF pelaporan.
+                                    </p>
+                                    <a href="{{ route('reviewer.final-draft.validation-report.form', $finalDraft) }}"
+                                       class="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Lengkapi Laporan Validasi
+                                    </a>
+                                @else
+                                    <p class="text-xs text-gray-500">
+                                        Laporan validasi sudah dilengkapi
+                                        @if($finalDraft->latestReview->validator_report_completed_at)
+                                            pada {{ $finalDraft->latestReview->validator_report_completed_at->format('d M Y H:i') }}.
+                                        @endif
+                                    </p>
+                                    <div class="flex flex-col gap-2">
+                                        <a href="{{ route('reviewer.final-draft.validation-report.pdf', $finalDraft) }}"
+                                           class="w-full inline-flex justify-center items-center px-4 py-2.5 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+                                            Unduh Laporan Validasi (PDF)
+                                        </a>
+                                        <a href="{{ route('reviewer.final-draft.validation-report.form', $finalDraft) }}"
+                                           class="w-full inline-flex justify-center items-center px-4 py-2.5 text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition">
+                                            Edit Laporan Validasi
+                                        </a>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                 @endif
             </div>

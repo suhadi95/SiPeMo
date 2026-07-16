@@ -8,6 +8,8 @@ use App\Models\FinalDraftActivityLog;
 use App\Models\FinalDraftReview;
 use App\Models\MataKuliah;
 use App\Models\ReviewAspek;
+use App\Models\ReviewerApplication;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -119,6 +121,115 @@ class FinalDraftController extends Controller
         return response()->download(Storage::disk('public')->path($finalDraft->file_path), $anonymousName);
     }
 
+    public function validationReportForm(FinalDraft $finalDraft)
+    {
+        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk melengkapi laporan validasi ini.');
+        }
+
+        $finalDraft->load(['mataKuliah.jurusan', 'penyusunApplication', 'latestReview.answers', 'latestReview.reviewer']);
+        $review = $finalDraft->latestReview;
+
+        if (!$review || !$review->requiresValidationReport()) {
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('error', 'Form laporan validasi hanya tersedia untuk penilaian Sangat Layak.');
+        }
+
+        $reviewerApp = ReviewerApplication::where('email', Auth::user()->email)->first();
+        $isEditing = $review->hasCompletedValidationReport();
+
+        return view('reviewer.final-draft.validation-report', compact('finalDraft', 'review', 'reviewerApp', 'isEditing'));
+    }
+
+    public function storeValidationReport(Request $request, FinalDraft $finalDraft)
+    {
+        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menyimpan laporan validasi ini.');
+        }
+
+        $finalDraft->load('latestReview');
+        $review = $finalDraft->latestReview;
+
+        if (!$review || !$review->requiresValidationReport()) {
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('error', 'Form laporan validasi hanya tersedia untuk penilaian Sangat Layak.');
+        }
+
+        $hasExistingSignature = $review->validator_signature
+            && Storage::disk('public')->exists($review->validator_signature);
+
+        $request->validate([
+            'validator_institusi' => 'required|string|max:255',
+            'validator_bidang_keahlian' => 'required|string|max:255',
+            'validator_kontak' => 'required|string|max:255',
+            'rekomendasi_validator' => 'required|string|max:2000',
+            'signature' => [$hasExistingSignature ? 'nullable' : 'required', 'string'],
+        ], [
+            'validator_institusi.required' => 'Institusi / unit kerja wajib diisi.',
+            'validator_bidang_keahlian.required' => 'Bidang keahlian wajib diisi.',
+            'validator_kontak.required' => 'Email / kontak wajib diisi.',
+            'rekomendasi_validator.required' => 'Rekomendasi validator wajib diisi.',
+            'signature.required' => 'Tanda tangan wajib diisi.',
+        ]);
+
+        $signaturePath = $review->validator_signature;
+
+        if ($request->filled('signature')) {
+            if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->signature)) {
+                return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
+                    ->withInput()
+                    ->with('error', 'Format tanda tangan tidak valid. Silakan gambar ulang tanda tangan.');
+            }
+
+            $newSignaturePath = $this->storeSignatureImage($request->signature, $review);
+
+            if ($review->validator_signature && $review->validator_signature !== $newSignaturePath) {
+                Storage::disk('public')->delete($review->validator_signature);
+            }
+
+            $signaturePath = $newSignaturePath;
+        } elseif (!$hasExistingSignature) {
+            return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
+                ->withInput()
+                ->with('error', 'Tanda tangan wajib diisi.');
+        }
+
+        try {
+            $isEditing = $review->hasCompletedValidationReport();
+
+            $review->update([
+                'validator_institusi' => $request->validator_institusi,
+                'validator_bidang_keahlian' => $request->validator_bidang_keahlian,
+                'validator_email_kontak' => $request->validator_kontak,
+                'rekomendasi_validator' => $request->rekomendasi_validator,
+                'validator_signature' => $signaturePath,
+                'validator_report_completed_at' => $review->validator_report_completed_at ?? now(),
+            ]);
+
+            $message = $isEditing
+                ? 'Laporan validasi berhasil diperbarui.'
+                : 'Laporan validasi berhasil dilengkapi. Anda dapat mengunduh PDF laporan.';
+
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('Error storing validation report: ' . $e->getMessage());
+
+            return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan saat menyimpan laporan validasi: ' . $e->getMessage());
+        }
+    }
+
+    public function validationReportPdf(FinalDraft $finalDraft)
+    {
+        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunduh laporan validasi ini.');
+        }
+
+        return $this->downloadValidationReportPdf($finalDraft, 'reviewer.final-draft.show');
+    }
+
     public function validateDraft(Request $request, FinalDraft $finalDraft)
     {
         if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
@@ -223,8 +334,13 @@ class FinalDraftController extends Controller
             ]);
 
             $message = $request->hasil_penilaian === FinalDraftReview::HASIL_SANGAT_LAYAK
-                ? 'Penilaian tersimpan. Final draft Sangat Layak dan dilanjutkan ke LPM.'
+                ? 'Penilaian tersimpan. Lengkapi form laporan validasi untuk menghasilkan PDF pelaporan.'
                 : 'Penilaian tersimpan. Final draft dikembalikan ke penyusun untuk perbaikan.';
+
+            if ($request->hasil_penilaian === FinalDraftReview::HASIL_SANGAT_LAYAK) {
+                return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
+                    ->with('success', $message);
+            }
 
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
                 ->with('success', $message);
@@ -235,5 +351,57 @@ class FinalDraftController extends Controller
                 ->withInput()
                 ->with('error', 'Terjadi kesalahan saat menyimpan penilaian: ' . $e->getMessage());
         }
+    }
+
+    private function storeSignatureImage(string $signatureData, FinalDraftReview $review): string
+    {
+        $imageData = substr($signatureData, strpos($signatureData, ',') + 1);
+        $decoded = base64_decode($imageData, true);
+
+        if ($decoded === false) {
+            throw new \RuntimeException('Gagal memproses tanda tangan.');
+        }
+
+        $fileName = 'validation-signatures/review_' . $review->id . '_' . time() . '.png';
+        Storage::disk('public')->put($fileName, $decoded);
+
+        return $fileName;
+    }
+
+    private function downloadValidationReportPdf(FinalDraft $finalDraft, string $redirectRoute)
+    {
+        $finalDraft->load([
+            'mataKuliah.jurusan',
+            'penyusunApplication',
+            'latestReview.answers',
+            'latestReview.reviewer',
+        ]);
+
+        $review = $finalDraft->latestReview;
+
+        if (!$review || !$review->requiresValidationReport()) {
+            return redirect()->route($redirectRoute, $finalDraft)
+                ->with('error', 'Laporan validasi PDF hanya tersedia untuk penilaian Sangat Layak.');
+        }
+
+        if (!$review->hasCompletedValidationReport()) {
+            return redirect()->route($redirectRoute, $finalDraft)
+                ->with('error', 'Laporan validasi belum dilengkapi oleh reviewer.');
+        }
+
+        $pdf = Pdf::loadView('pdf.final-draft-validation-report', [
+            'finalDraft' => $finalDraft,
+            'review' => $review,
+            'likertLabels' => FinalDraftReview::LIKERT_LABELS,
+            'hasilOptions' => FinalDraftReview::HASIL_OPTIONS,
+        ])->setPaper('a4', 'portrait')->setOptions([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+        ]);
+
+        $fileName = 'Form_Validasi_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . '.pdf';
+
+        return $pdf->download($fileName);
     }
 }

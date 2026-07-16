@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class FinalDraftReview extends Model
 {
@@ -34,10 +35,17 @@ class FinalDraftReview extends Model
         'hasil_penilaian',
         'catatan_revisi',
         'submitted_at',
+        'validator_institusi',
+        'validator_bidang_keahlian',
+        'validator_email_kontak',
+        'rekomendasi_validator',
+        'validator_signature',
+        'validator_report_completed_at',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'validator_report_completed_at' => 'datetime',
     ];
 
     public function finalDraft(): BelongsTo
@@ -68,5 +76,26 @@ class FinalDraftReview extends Model
     public function answersGroupedByAspek()
     {
         return $this->answers->groupBy('aspek_nama');
+    }
+
+    public function hasCompletedValidationReport(): bool
+    {
+        return $this->validator_report_completed_at !== null;
+    }
+
+    public function requiresValidationReport(): bool
+    {
+        return $this->hasil_penilaian === self::HASIL_SANGAT_LAYAK;
+    }
+
+    public function signatureDataUri(): ?string
+    {
+        if (!$this->validator_signature || !Storage::disk('public')->exists($this->validator_signature)) {
+            return null;
+        }
+
+        $mime = str_ends_with(strtolower($this->validator_signature), '.png') ? 'image/png' : 'image/jpeg';
+
+        return 'data:' . $mime . ';base64,' . base64_encode(Storage::disk('public')->get($this->validator_signature));
     }
 }

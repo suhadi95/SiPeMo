@@ -106,7 +106,7 @@
                                             foreach($penyusunsByJurusanWithAll as $penyusuns) {
                                                 foreach($penyusuns as $penyusun) {
                                                     $finalDraft = $penyusun->finalDrafts->first();
-                                                    if($finalDraft && ($finalDraft->status == 'approved' || $finalDraft->isLpmValidated())) {
+                                                    if($finalDraft && $finalDraft->status == 'approved') {
                                                         $finalDraftCount++;
                                                     }
                                                 }
@@ -295,25 +295,9 @@
                                                             @endphp
                                                             
                                                             @if($finalDraft)
-                                                                @if($finalDraft->status == 'approved')
-                                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                        Disetujui
-                                                                    </span>
-                                                                @elseif($finalDraft->status == 'rejected')
-                                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                                        Ditolak
-                                                                    </span>
-                                                                @elseif($finalDraft->status == 'pending')
-                                                                    @if($finalDraft->isLpmValidated())
-                                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                                            Disetujui
-                                                                        </span>
-                                                                    @else
-                                                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                                            Menunggu Validasi LPM
-                                                                        </span>
-                                                                    @endif
-                                                                @endif
+                                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $finalDraft->statusBadgeClass() }}">
+                                                                    {{ $finalDraft->statusLabel() }}
+                                                                </span>
                                                             @elseif($allTahapsValidated)
                                                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                                                     Siap Upload

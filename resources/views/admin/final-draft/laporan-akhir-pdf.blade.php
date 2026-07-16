@@ -143,8 +143,8 @@
     <div class="summary-box">
         <div class="summary-title">Ringkasan Eksekutif</div>
         <p class="summary-text">
-            Pada periode ini tercatat <strong>{{ $total }}</strong> pengusul (penyusun) yang sudah disetujui. Sebanyak <strong>{{ $approved }}</strong> final draft disetujui,
-            <strong>{{ $rejected }}</strong> ditolak, <strong>{{ $pending }}</strong> menunggu validasi LPM, dan <strong>{{ $belumUpload }}</strong> belum upload final draft.
+            Pada periode ini tercatat <strong>{{ $total }}</strong> pengusul (penyusun) yang sudah disetujui. Sebanyak <strong>{{ $approved }}</strong> final draft disetujui LPM,
+            <strong>{{ $rejected }}</strong> ditolak LPM, <strong>{{ $pending }}</strong> masih dalam proses (Reviewer/LPM), dan <strong>{{ $belumUpload }}</strong> belum upload final draft.
             @if($total > 0)
                 Persentase final draft disetujui (dari pengusul): <strong>{{ round($approved / $total * 100, 1) }}%</strong>.
             @endif
@@ -157,7 +157,7 @@
                 <th>Total Pengusul Disetujui</th>
                 <th>FD Disetujui</th>
                 <th>FD Ditolak</th>
-                <th>Menunggu Validasi</th>
+                <th>Menunggu Proses</th>
                 <th>Belum Upload</th>
             </tr>
         </thead>
@@ -201,11 +201,11 @@
                                 <td class="status-col">
                                     @if($fd)
                                         @if($fd->status === 'approved')
-                                            <span class="status-approved">Disetujui</span>
-                                        @elseif($fd->status === 'rejected')
-                                            <span class="status-rejected">Ditolak</span>
+                                            <span class="status-approved">{{ $fd->statusLabel() }}</span>
+                                        @elseif(in_array($fd->status, ['rejected', 'rejected_by_reviewer'], true))
+                                            <span class="status-rejected">{{ $fd->statusLabel() }}</span>
                                         @else
-                                            <span class="status-pending">Menunggu Validasi</span>
+                                            <span class="status-pending">{{ $fd->statusLabel() }}</span>
                                         @endif
                                     @else
                                         <span class="status-belum">Belum Upload</span>

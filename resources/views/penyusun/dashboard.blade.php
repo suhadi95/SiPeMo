@@ -88,7 +88,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-lg font-medium text-gray-900">Final Draft dan Validasi</h3>
-                            <p class="text-sm text-gray-500">Upload final draft untuk validasi</p>
+                            <p class="text-sm text-gray-500">Upload final draft untuk penilaian Reviewer & LPM</p>
                         </div>
                     </div>
                     <div class="mt-4">
@@ -144,9 +144,7 @@
                                 $finalDraft = $application->finalDrafts->first();
                                 $publication = $application->publicationModuls->first();
                                 
-                                if ($finalDraft && 
-                                    (($finalDraft->status == 'approved') || 
-                                     ($finalDraft->status == 'pending' && $finalDraft->isLpmValidated()))) {
+                                if ($finalDraft && $finalDraft->status === 'approved') {
                                     $canPublish = true;
                                     if ($publication) {
                                         if ($publication->status == 'approved') {
@@ -185,7 +183,7 @@
                             <span class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-500 bg-gray-100 cursor-not-allowed">
                                 Belum Tersedia
                             </span>
-                            <p class="text-xs text-gray-400 mt-1">Final draft harus disetujui admin dan LPM</p>
+                            <p class="text-xs text-gray-400 mt-1">Final draft harus lolos Reviewer dan disetujui LPM</p>
                         @endif
                     </div>
                 </div>

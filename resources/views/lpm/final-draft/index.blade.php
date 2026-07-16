@@ -40,7 +40,7 @@
                         </div>
                         <div class="ml-3 sm:ml-4">
                             <p class="text-xs sm:text-sm font-medium text-gray-500">Menunggu Validasi</p>
-                            <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $finalDrafts->where('status', 'pending')->count() }}</p>
+                            <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $finalDrafts->whereIn('status', ['approved_by_reviewer', 'pending_lpm'])->count() }}</p>
                         </div>
                     </div>
                 </div>

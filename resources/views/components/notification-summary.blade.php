@@ -162,20 +162,29 @@
 
     // Notifikasi final draft
     if ($hasFinalDraft) {
-        if ($finalDraftStatus === 'rejected') {
+        if (in_array($finalDraftStatus, ['rejected', 'rejected_by_reviewer'], true)) {
+            $rejector = $finalDraftStatus === 'rejected_by_reviewer' ? 'Reviewer' : 'LPM';
             $notifications[] = [
                 'type' => 'error',
                 'icon' => 'x-circle',
-                'title' => 'Final Draft Ditolak',
-                'message' => 'Final draft Anda ditolak. Silakan periksa catatan dan perbaiki.',
+                'title' => 'Final Draft Perlu Revisi',
+                'message' => "Final draft Anda dikembalikan oleh {$rejector}. Silakan periksa catatan dan perbaiki.",
                 'action' => ['text' => 'Kelola Final Draft', 'url' => route('penyusun.final-draft.index')]
             ];
-        } elseif ($finalDraftStatus === 'pending') {
+        } elseif ($finalDraftStatus === 'pending_review' || $finalDraftStatus === 'pending') {
             $notifications[] = [
                 'type' => 'info',
                 'icon' => 'clock',
-                'title' => 'Final Draft Menunggu Validasi',
-                'message' => 'Final draft Anda sedang menunggu validasi admin dan LPM.',
+                'title' => 'Final Draft Menunggu Reviewer',
+                'message' => 'Final draft Anda sedang menunggu penilaian dari Reviewer.',
+                'action' => ['text' => 'Lihat Status', 'url' => route('penyusun.final-draft.index')]
+            ];
+        } elseif (in_array($finalDraftStatus, ['approved_by_reviewer', 'pending_lpm'], true)) {
+            $notifications[] = [
+                'type' => 'info',
+                'icon' => 'clock',
+                'title' => 'Final Draft Menunggu Validasi LPM',
+                'message' => 'Final draft Anda telah lolos Reviewer dan sedang menunggu validasi LPM.',
                 'action' => ['text' => 'Lihat Status', 'url' => route('penyusun.final-draft.index')]
             ];
         } elseif ($finalDraftStatus === 'approved' && !$hasPublication) {
@@ -184,7 +193,7 @@
                 'type' => 'warning',
                 'icon' => 'exclamation-triangle',
                 'title' => 'Action Required: Upload Bukti Publikasi',
-                'message' => 'Final draft Anda telah disetujui! Silakan segera upload bukti publikasi modul Anda.',
+                'message' => 'Final draft Anda telah disetujui LPM! Silakan segera upload bukti publikasi modul Anda.',
                 'action' => ['text' => 'Upload Publikasi Sekarang', 'url' => route('penyusun.publication.index')]
             ];
         } elseif ($finalDraftStatus === 'approved' && $hasPublication) {
@@ -193,33 +202,23 @@
         }
     }
 
-    // Notifikasi progress
-    if ($applicationStatus === 'approved' && $uploadedModuls < 4 && !$isAnyAdvancedStageApproved) {
-        $notifications[] = [
-            'type' => 'info',
-            'icon' => 'document-text',
-            'title' => 'Progress Penyusunan',
-            'message' => "Anda telah mengupload {$uploadedModuls} dari 4 modul yang diperlukan.",
-            'action' => ['text' => 'Lanjutkan Upload', 'url' => route('penyusun.modul.index')]
-        ];
-    }
-
-    if ($applicationStatus === 'approved' && !$isAnyAdvancedStageApproved) {
-        if ($uploadedModuls === 4 && $approvedModuls === 4) {
+    // Notifikasi progress penyusunan modul
+    if ($applicationStatus === 'approved' && !$isAnyAdvancedStageApproved && !$hasFinalDraft) {
+        if ($approvedModuls >= 4) {
             $notifications[] = [
                 'type' => 'success',
                 'icon' => 'check-circle',
-                'title' => 'Selamat! Semua Modul Disetujui',
-                'message' => 'Semua 4 modul Anda telah disetujui. Anda dapat melanjutkan ke tahap final draft.',
+                'title' => 'Siap Upload Final Draft',
+                'message' => 'Modul tahap penyusunan Anda sudah memadai. Anda dapat melanjutkan ke tahap final draft.',
                 'action' => ['text' => 'Buat Final Draft', 'url' => route('penyusun.final-draft.index')]
             ];
-        } elseif ($uploadedModuls === 4) {
+        } elseif ($uploadedModuls > 0) {
             $notifications[] = [
-                'type' => 'success',
-                'icon' => 'check-circle',
-                'title' => 'Semua Modul Telah Diupload',
-                'message' => 'Anda telah mengupload semua 4 modul. Menunggu validasi dari admin.',
-                'action' => ['text' => 'Lihat Status', 'url' => route('penyusun.modul.index')]
+                'type' => 'info',
+                'icon' => 'document-text',
+                'title' => 'Progress Penyusunan',
+                'message' => "Anda telah mengupload {$uploadedModuls} modul ({$approvedModuls} disetujui). Lanjutkan sesuai tahap yang tersedia.",
+                'action' => ['text' => 'Lanjutkan Upload', 'url' => route('penyusun.modul.index')]
             ];
         }
     }
