@@ -203,8 +203,9 @@
     }
 
     // Notifikasi progress penyusunan modul
+    $totalTahap = \App\Models\TahapPenyusunan::global()->count();
     if ($applicationStatus === 'approved' && !$isAnyAdvancedStageApproved && !$hasFinalDraft) {
-        if ($approvedModuls >= 4) {
+        if ($totalTahap > 0 && $approvedModuls >= $totalTahap) {
             $notifications[] = [
                 'type' => 'success',
                 'icon' => 'check-circle',

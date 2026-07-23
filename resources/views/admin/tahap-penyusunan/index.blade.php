@@ -15,6 +15,12 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {{ session('error') }}
+            </div>
+        @endif
+
         {{-- Template Modul --}}
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-4 sm:p-6 text-gray-900">
@@ -160,7 +166,7 @@
 
 <!-- Modal Konfirmasi Reset -->
 <div id="resetModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 max-w-[calc(100%-2rem)] shadow-lg rounded-md bg-white">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white" style="max-width: calc(100% - 2rem);">
         <div class="mt-3 text-center">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
                 <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,11 +174,17 @@
                 </svg>
             </div>
             <h3 class="text-lg font-medium text-gray-900 mt-4">Konfirmasi Reset Periode</h3>
-            <div class="mt-2 px-4 py-3">
-                <p class="text-sm text-gray-500">
-                    Apakah Anda yakin ingin mereset semua periode tahap penyusunan?
-                    <strong class="text-red-600">Tindakan ini tidak dapat dibatalkan</strong> dan akan menghapus semua data periode yang ada.
+            <div class="mt-2 px-4 py-3 text-left">
+                <p class="text-sm text-gray-600 mb-2">
+                    Apakah Anda yakin ingin mereset periode penyusunan?
+                    <strong class="text-red-600">Tindakan ini tidak dapat dibatalkan.</strong>
                 </p>
+                <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+                    <li>Semua progres penyusunan (modul, final draft, publikasi) akan dihapus</li>
+                    <li>Semua file yang diupload akan dihapus dari server</li>
+                    <li>Aplikasi dan akun User penyusun &amp; reviewer akan dihapus (harus daftar ulang)</li>
+                    <li>Yang <strong>tetap</strong>: akun Admin &amp; LPM, data Jurusan, dan Mata Kuliah</li>
+                </ul>
             </div>
             <div class="flex justify-center gap-2 px-4 py-3">
                 <button type="button"

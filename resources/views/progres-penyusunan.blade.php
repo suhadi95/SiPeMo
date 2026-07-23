@@ -260,7 +260,7 @@
                                                                     }
                                                                     
                                                                     $tahap = $displayModul->tahapPenyusunan->tahap ?? 1;
-                                                                    $totalTahap = 4;
+                                                                    $totalTahap = \App\Models\TahapPenyusunan::global()->count();
                                                                 @endphp
                                                                 
                                                                 @if($displayStatus == 'pending')

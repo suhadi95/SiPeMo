@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FinalDraft;
 use App\Models\PenyusunApplication;
 use App\Models\MataKuliah;
+use App\Models\TahapPenyusunan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +29,7 @@ class FinalDraftController extends Controller
                 ->with('error', 'Anda belum memiliki aplikasi yang disetujui.');
         }
 
-        // Cek apakah semua 6 tahap sudah divalidasi
+        // Cek apakah semua tahap sudah divalidasi
         $allTahapsValidated = $this->checkAllTahapsValidated($application->id);
         
         if (!$allTahapsValidated) {
@@ -57,7 +58,7 @@ class FinalDraftController extends Controller
                 ->with('error', 'Anda belum memiliki aplikasi yang disetujui.');
         }
 
-        // Cek apakah semua 6 tahap sudah divalidasi
+        // Cek apakah semua tahap sudah divalidasi
         $allTahapsValidated = $this->checkAllTahapsValidated($application->id);
         
         if (!$allTahapsValidated) {
@@ -73,10 +74,10 @@ class FinalDraftController extends Controller
                 ->with('error', 'Final draft sudah pernah diupload dan masih dalam proses validasi.');
         }
 
-        // Ambil mata kuliah untuk aplikasi ini
         $mataKuliah = MataKuliah::where('nama_mata_kuliah', $application->mata_kuliah)->first();
+        $totalTahap = TahapPenyusunan::global()->count();
 
-        return view('penyusun.final-draft.create', compact('application', 'mataKuliah', 'existingFinalDraft'));
+        return view('penyusun.final-draft.create', compact('application', 'mataKuliah', 'existingFinalDraft', 'totalTahap'));
     }
 
     public function store(Request $request)
@@ -99,7 +100,7 @@ class FinalDraftController extends Controller
                     ->with('error', 'Anda belum memiliki aplikasi yang disetujui.');
             }
 
-            // Cek apakah semua 6 tahap sudah divalidasi
+            // Cek apakah semua tahap sudah divalidasi
             $allTahapsValidated = $this->checkAllTahapsValidated($application->id);
             
             if (!$allTahapsValidated) {
@@ -384,11 +385,16 @@ class FinalDraftController extends Controller
 
     private function checkAllTahapsValidated($penyusunApplicationId)
     {
-        // Cek apakah semua 6 tahap sudah divalidasi (approved)
-        $moduls = \App\Models\Modul::where('penyusun_application_id', $penyusunApplicationId)
+        $totalTahap = TahapPenyusunan::global()->count();
+
+        if ($totalTahap === 0) {
+            return false;
+        }
+
+        $approvedCount = \App\Models\Modul::where('penyusun_application_id', $penyusunApplicationId)
             ->where('status', 'approved')
             ->count();
 
-        return $moduls >= 4; // Minimal 4 modul harus sudah approved
+        return $approvedCount >= $totalTahap;
     }
 }

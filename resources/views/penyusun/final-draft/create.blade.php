@@ -46,7 +46,7 @@
                             </div>
                             @endif
                             <ul class="list-disc list-inside space-y-1">
-                                <li>Pastikan semua 4 tahap penyusunan sudah divalidasi</li>
+                                <li>Pastikan semua {{ $totalTahap }} tahap penyusunan sudah divalidasi</li>
                                 <li>File harus dalam format .doc atau .docx</li>
                                 <li>Ukuran file maksimal 25MB</li>
                                 <li>

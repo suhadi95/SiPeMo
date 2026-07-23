@@ -101,7 +101,8 @@
                                 $moduls = \App\Models\Modul::where('penyusun_application_id', $application->id)
                                     ->where('status', 'approved')
                                     ->count();
-                                $allTahapsValidated = $moduls >= 4;
+                                $totalTahap = \App\Models\TahapPenyusunan::global()->count();
+                                $allTahapsValidated = $totalTahap > 0 && $moduls >= $totalTahap;
                             }
                         @endphp
                         

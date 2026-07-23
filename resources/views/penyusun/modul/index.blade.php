@@ -88,78 +88,31 @@
                             </div>
 
                             <!-- Right Side - Ketentuan Penyusunan Modul -->
-                            @if($application->mataKuliah && $application->mataKuliah->sks)
                             <div class="lg:w-80 xl:w-96 border-l border-gray-200 p-4 bg-blue-50">
                                 <h4 class="text-sm font-semibold text-blue-800 mb-3">Ketentuan Penyusunan Modul</h4>
-                                @if($application->mataKuliah->sks == 2)
                                 <div class="text-sm text-blue-700 space-y-2">
                                     <div>
-                                        <span><strong>Total Modul:</strong></span>
-                                        <span>6 modul</span>
+                                        <span><strong>Total Tahap:</strong></span>
+                                        <span>{{ $tahaps->count() }} tahap</span>
                                     </div>
+                                    @if($tahaps->count() > 0)
                                     <div class="mt-3">
-                                        <p class="text-xs font-medium text-blue-800 mb-2">Pembagian:</p>
-                                        <div class="space-y-1 text-xs text-blue-600">
+                                        <p class="text-xs font-medium text-blue-800 mb-2">Yang harus dikumpulkan:</p>
+                                        <div class="space-y-2 text-xs text-blue-600">
+                                            @foreach($tahaps as $tahapInfo)
                                             <div>
-                                                <span>Tahap 1:</span>
-                                                <span>Modul 1 dan 2</span>
+                                                <span class="font-medium">{{ $tahapInfo->nama_tahap }}:</span>
+                                                <span>{{ $tahapInfo->deskripsi }}</span>
                                             </div>
-                                            <div>
-                                                <span>Tahap 2:</span>
-                                                <span>Modul 3 dan 4</span>
-                                            </div>
-                                            <div>
-                                                <span>Tahap 3:</span>
-                                                <span>Modul 5</span>
-                                            </div>
-                                            <div>
-                                                <span>Tahap 4:</span>
-                                                <span>Modul 6</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @elseif($application->mataKuliah->sks == 3)
-                                    <div class="text-sm text-blue-700 space-y-2">
-                                        <div>
-                                            <span><strong>Total Modul: </strong></span>
-                                            <span>9 modul</span>
-                                        </div>
-                                        <div class="mt-3">
-                                            <p class="text-xs font-medium text-blue-800 mb-2">Pembagian:</p>
-                                            <div class="space-y-1 text-xs text-blue-600">
-                                                <div>
-                                                    <span>Tahap 1:</span>
-                                                    <span>Modul 1,2 dan 3</span>
-                                                </div>
-                                                <div>
-                                                    <span>Tahap 2:</span>
-                                                    <span>Modul 4 dan 5</span>
-                                                </div>
-                                                <div>
-                                                    <span>Tahap 3:</span>
-                                                    <span>Modul 6 dan 7</span>
-                                                </div>
-                                                <div>
-                                                    <span>Tahap 4:</span>
-                                                    <span>Modul 8 dan 9</span>
-                                                </div>
-                                            </div>
+                                            @endforeach
                                         </div>
                                     </div>
                                     @else
-                                    <div class="text-sm text-blue-700">
-                                        <div class="p-2 bg-blue-100 rounded text-xs text-blue-600">
-                                            <div class="flex items-start">
-                                                <svg class="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span>Ketentuan modul untuk {{ $application->mataKuliah->sks }} SKS akan ditentukan kemudian.</span>
-                                            </div>
-                                        </div>
+                                    <div class="p-2 bg-blue-100 rounded text-xs text-blue-600">
+                                        Belum ada tahap penyusunan yang aktif. Menunggu admin membuat periode.
                                     </div>
                                     @endif
                                 </div>
-                                @endif
                             </div>
                         </div>
                     </div>
@@ -203,6 +156,9 @@
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <h4 class="text-base font-semibold text-gray-900">{{ $tahap->nama_tahap }}</h4>
+                                                @if($tahap->deskripsi)
+                                                <p class="text-xs text-gray-600 mt-1">{{ $tahap->deskripsi }}</p>
+                                                @endif
                                                 <p class="text-xs text-gray-500 mt-1">
                                                     {{ \Carbon\Carbon::parse($tahap->tanggal_mulai)->format('d M') }} -
                                                     {{ \Carbon\Carbon::parse($tahap->tanggal_selesai)->format('d M Y') }}

@@ -15,7 +15,7 @@
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Periode</h3>
                     <div class="bg-gray-50 p-4 rounded-lg space-y-1 text-sm">
                         <p><strong>Tahap:</strong> {{ $tahap->nama_tahap }}</p>
-                        <p><strong>Deskripsi:</strong> {{ $tahap->deskripsi }}</p>
+                        <p><strong>Periode:</strong> {{ $tahap->nama_periode }}</p>
                         <p><strong>Status:</strong>
                             <span class="{{ $tahap->is_active ? 'text-green-600' : 'text-gray-600' }}">
                                 {{ $tahap->is_active ? 'Aktif' : 'Tidak Aktif' }}
@@ -33,7 +33,7 @@
                     @method('PUT')
 
                     <div class="mb-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Periode Penyusunan</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Detail Tahap</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="tanggal_mulai" class="block text-sm font-medium text-gray-700 mb-2">
@@ -61,6 +61,21 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                        required>
                                 @error('tanggal_selesai')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="deskripsi" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Deskripsi Tahap <span class="text-red-500">*</span>
+                                </label>
+                                <textarea id="deskripsi"
+                                          name="deskripsi"
+                                          rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="Apa yang harus dikumpulkan penyusun pada tahap ini"
+                                          required>{{ old('deskripsi', $tahap->deskripsi) }}</textarea>
+                                @error('deskripsi')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>

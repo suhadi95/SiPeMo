@@ -43,22 +43,16 @@
                 </div>
 
                 <div class="mb-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Modul</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Yang Harus Dikumpulkan</h3>
                     <div class="bg-blue-50 p-4 rounded-lg">
                         <p class="text-sm text-blue-800 mb-2">
-                            <strong>Catatan:</strong> Pada tahap ini, Anda akan mengupload modul untuk:
+                            <strong>Pada tahap ini, unggah sesuai ketentuan admin:</strong>
                         </p>
-                        <ul class="text-sm text-blue-800 list-disc list-inside space-y-1">
-                            @php
-                                $modulStart = $tahapPenyusunan->getModulStart();
-                                $modulEnd = $tahapPenyusunan->getModulEnd();
-                            @endphp
-                            @for($i = $modulStart; $i <= $modulEnd; $i++)
-                                <li>Modul {{ $i }}</li>
-                            @endfor
-                        </ul>
+                        <p class="text-sm text-blue-800">
+                            {{ $tahapPenyusunan->deskripsi }}
+                        </p>
                         <p class="text-sm text-blue-800 mt-2">
-                            File yang sama akan digunakan untuk semua modul dalam tahap ini.
+                            Satu file diunggah untuk tahap ini.
                         </p>
                     </div>
                 </div>
