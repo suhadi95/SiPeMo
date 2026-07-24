@@ -167,9 +167,6 @@
                                                         No
                                                     </th>
                                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                        Nama Penyusun
-                                                    </th>
-                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Judul Modul
                                                     </th>
                                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -197,16 +194,6 @@
                                                     <tr class="{{ $rowClass }} transition-colors duration-150">
                                                         <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isFullyCompleted ? 'text-green-900 font-semibold' : 'text-gray-900' }}">
                                                             {{ $index + 1 }}
-                                                        </td>
-                                                        <td class="px-6 py-4 whitespace-nowrap">
-                                                            <div class="text-sm font-medium {{ $isFullyCompleted ? 'text-green-900' : 'text-gray-900' }}">
-                                                                {{ $penyusun->nama_penyusun }}
-                                                            </div>
-                                                            @if($isFullyCompleted)
-                                                                <div class="text-xs text-green-600 font-medium mt-0.5">
-                                                                    ✓ Selesai Penyusunan Modul
-                                                                </div>
-                                                            @endif
                                                         </td>
                                                         <td class="px-6 py-4 whitespace-nowrap">
                                                             <div class="text-sm {{ $isFullyCompleted ? 'text-green-900' : 'text-gray-900' }}">
