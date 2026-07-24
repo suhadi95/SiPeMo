@@ -45,7 +45,7 @@ class TahapPenyusunanController extends Controller
     {
         if (TahapPenyusunan::query()->exists()) {
             return redirect()->route('admin.tahap-penyusunan.index')
-                ->with('error', 'Periode sudah ada. Reset periode terlebih dahulu sebelum membuat periode baru.');
+                ->with('error', 'Periode sudah ada. Hapus atau Reset periode terlebih dahulu sebelum membuat periode baru.');
         }
 
         return view('admin.tahap-penyusunan.create');
@@ -55,58 +55,84 @@ class TahapPenyusunanController extends Controller
     {
         if (TahapPenyusunan::query()->exists()) {
             return redirect()->route('admin.tahap-penyusunan.index')
-                ->with('error', 'Periode sudah ada. Reset periode terlebih dahulu sebelum membuat periode baru.');
+                ->with('error', 'Periode sudah ada. Hapus atau Reset periode terlebih dahulu sebelum membuat periode baru.');
         }
 
-        $request->validate([
-            'nama_periode' => 'required|string|max:255',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after:tanggal_mulai',
-            'jumlah_tahap' => 'required|integer|min:1|max:10',
-            'deskripsi_tahap' => 'required|array',
-            'deskripsi_tahap.*' => 'required|string|max:1000',
-        ], [
-            'jumlah_tahap.required' => 'Jumlah tahap wajib diisi.',
-            'jumlah_tahap.min' => 'Jumlah tahap minimal 1.',
-            'jumlah_tahap.max' => 'Jumlah tahap maksimal 10.',
-            'deskripsi_tahap.required' => 'Deskripsi tiap tahap wajib diisi.',
-            'deskripsi_tahap.*.required' => 'Deskripsi setiap tahap wajib diisi.',
-        ]);
+        $validated = $this->validatePeriodePayload($request);
+        $jumlahTahap = (int) $validated['jumlah_tahap'];
 
-        $jumlahTahap = (int) $request->jumlah_tahap;
-
-        if (count($request->deskripsi_tahap) !== $jumlahTahap) {
-            return back()
-                ->withErrors(['deskripsi_tahap' => 'Jumlah deskripsi tahap harus sama dengan jumlah tahap.'])
-                ->withInput();
-        }
-
-        DB::transaction(function () use ($request, $jumlahTahap) {
-            $tanggalMulai = $request->tanggal_mulai;
-            $tanggalSelesai = $request->tanggal_selesai;
-            $daysPerTahap = (strtotime($tanggalSelesai) - strtotime($tanggalMulai)) / ($jumlahTahap * 24 * 3600);
-
-            for ($i = 1; $i <= $jumlahTahap; $i++) {
-                $startDate = date('Y-m-d', strtotime($tanggalMulai) + (($i - 1) * $daysPerTahap * 24 * 3600));
-                $endDate = date('Y-m-d', strtotime($tanggalMulai) + ($i * $daysPerTahap * 24 * 3600) - (24 * 3600));
-
-                if ($i === $jumlahTahap) {
-                    $endDate = $tanggalSelesai;
-                }
-
-                TahapPenyusunan::create([
-                    'tahap' => $i,
-                    'nama_tahap' => "Tahap {$i}",
-                    'nama_periode' => $request->nama_periode,
-                    'tanggal_mulai' => $startDate,
-                    'tanggal_selesai' => $endDate,
-                    'deskripsi' => $request->deskripsi_tahap[$i - 1],
-                ]);
-            }
+        DB::transaction(function () use ($validated, $jumlahTahap) {
+            $this->syncTahapRows(
+                $validated['nama_periode'],
+                $validated['tanggal_mulai'],
+                $validated['tanggal_selesai'],
+                $jumlahTahap,
+                $validated['deskripsi_tahap']
+            );
         });
 
         return redirect()->route('admin.tahap-penyusunan.index')
             ->with('success', 'Periode tahap penyusunan berhasil dibuat.');
+    }
+
+    public function editPeriode()
+    {
+        $tahaps = TahapPenyusunan::global()->orderBy('tahap')->get();
+
+        if ($tahaps->isEmpty()) {
+            return redirect()->route('admin.tahap-penyusunan.index')
+                ->with('error', 'Belum ada periode yang dapat diedit.');
+        }
+
+        return view('admin.tahap-penyusunan.edit-periode', compact('tahaps'));
+    }
+
+    public function updatePeriode(Request $request)
+    {
+        $tahaps = TahapPenyusunan::global()->orderBy('tahap')->get();
+
+        if ($tahaps->isEmpty()) {
+            return redirect()->route('admin.tahap-penyusunan.index')
+                ->with('error', 'Belum ada periode yang dapat diedit.');
+        }
+
+        $validated = $this->validatePeriodePayload($request);
+        $jumlahTahap = (int) $validated['jumlah_tahap'];
+        $currentCount = $tahaps->count();
+
+        $removedTahapIds = [];
+        if ($jumlahTahap < $currentCount) {
+            $removedTahapIds = $tahaps->where('tahap', '>', $jumlahTahap)->pluck('id')->all();
+        }
+
+        $filePaths = [];
+        if (!empty($removedTahapIds)) {
+            $filePaths = Modul::query()
+                ->whereIn('tahap_id', $removedTahapIds)
+                ->whereNotNull('file_path')
+                ->pluck('file_path')
+                ->all();
+        }
+
+        DB::transaction(function () use ($validated, $jumlahTahap, $removedTahapIds) {
+            if (!empty($removedTahapIds)) {
+                Modul::query()->whereIn('tahap_id', $removedTahapIds)->delete();
+                TahapPenyusunan::query()->whereIn('id', $removedTahapIds)->delete();
+            }
+
+            $this->syncTahapRows(
+                $validated['nama_periode'],
+                $validated['tanggal_mulai'],
+                $validated['tanggal_selesai'],
+                $jumlahTahap,
+                $validated['deskripsi_tahap']
+            );
+        });
+
+        $this->deleteCollectedFiles($filePaths);
+
+        return redirect()->route('admin.tahap-penyusunan.index')
+            ->with('success', 'Periode berhasil diperbarui.');
     }
 
     public function edit(TahapPenyusunan $tahap)
@@ -144,9 +170,35 @@ class TahapPenyusunanController extends Controller
             ->with('success', 'Tahap penyusunan berhasil diaktifkan.');
     }
 
+    /**
+     * Hapus periode + progres penyusunan, tanpa menghapus akun/aplikasi penyusun & reviewer.
+     */
+    public function destroyPeriode()
+    {
+        if (!TahapPenyusunan::query()->exists()) {
+            return redirect()->route('admin.tahap-penyusunan.index')
+                ->with('error', 'Tidak ada periode yang dapat dihapus.');
+        }
+
+        $filePaths = $this->collectProgressFilePaths();
+
+        DB::transaction(function () {
+            PublicationModul::query()->delete();
+            FinalDraft::query()->delete();
+            Modul::query()->delete();
+            TahapPenyusunan::query()->delete();
+        });
+
+        $this->deleteCollectedFiles($filePaths);
+        $this->cleanupProgressUploadDirectories();
+
+        return redirect()->route('admin.tahap-penyusunan.index')
+            ->with('success', 'Periode dan progres penyusunan berhasil dihapus. Akun serta data pendaftaran penyusun & reviewer tetap ada. Anda dapat membuat periode baru.');
+    }
+
     public function reset()
     {
-        $filePaths = $this->collectUploadedFilePaths();
+        $filePaths = $this->collectUploadedFilePaths(includeApplicationFiles: true);
 
         DB::transaction(function () {
             PublicationModul::query()->delete();
@@ -171,7 +223,79 @@ class TahapPenyusunanController extends Controller
             ->with('success', 'Periode berhasil direset. Progres, file upload, aplikasi, dan akun penyusun/reviewer telah dihapus. Anda dapat membuat periode baru.');
     }
 
-    private function collectUploadedFilePaths(): array
+    private function validatePeriodePayload(Request $request): array
+    {
+        $validated = $request->validate([
+            'nama_periode' => 'required|string|max:255',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after:tanggal_mulai',
+            'jumlah_tahap' => 'required|integer|min:1|max:10',
+            'deskripsi_tahap' => 'required|array',
+            'deskripsi_tahap.*' => 'required|string|max:1000',
+        ], [
+            'jumlah_tahap.required' => 'Jumlah tahap wajib diisi.',
+            'jumlah_tahap.min' => 'Jumlah tahap minimal 1.',
+            'jumlah_tahap.max' => 'Jumlah tahap maksimal 10.',
+            'deskripsi_tahap.required' => 'Deskripsi tiap tahap wajib diisi.',
+            'deskripsi_tahap.*.required' => 'Deskripsi setiap tahap wajib diisi.',
+        ]);
+
+        $jumlahTahap = (int) $validated['jumlah_tahap'];
+
+        if (count($validated['deskripsi_tahap']) !== $jumlahTahap) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'deskripsi_tahap' => 'Jumlah deskripsi tahap harus sama dengan jumlah tahap.',
+            ]);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Sync N baris tahap: update yang ada, buat yang baru, set tanggal rata & deskripsi.
+     */
+    private function syncTahapRows(
+        string $namaPeriode,
+        string $tanggalMulai,
+        string $tanggalSelesai,
+        int $jumlahTahap,
+        array $deskripsiTahap
+    ): void {
+        $daysPerTahap = (strtotime($tanggalSelesai) - strtotime($tanggalMulai)) / ($jumlahTahap * 24 * 3600);
+
+        for ($i = 1; $i <= $jumlahTahap; $i++) {
+            $startDate = date('Y-m-d', strtotime($tanggalMulai) + (($i - 1) * $daysPerTahap * 24 * 3600));
+            $endDate = date('Y-m-d', strtotime($tanggalMulai) + ($i * $daysPerTahap * 24 * 3600) - (24 * 3600));
+
+            if ($i === $jumlahTahap) {
+                $endDate = $tanggalSelesai;
+            }
+
+            $existing = TahapPenyusunan::query()->where('tahap', $i)->first();
+
+            $payload = [
+                'tahap' => $i,
+                'nama_tahap' => "Tahap {$i}",
+                'nama_periode' => $namaPeriode,
+                'tanggal_mulai' => $startDate,
+                'tanggal_selesai' => $endDate,
+                'deskripsi' => $deskripsiTahap[$i - 1],
+            ];
+
+            if ($existing) {
+                $existing->update($payload);
+            } else {
+                TahapPenyusunan::create($payload);
+            }
+        }
+    }
+
+    private function collectProgressFilePaths(): array
+    {
+        return $this->collectUploadedFilePaths(includeApplicationFiles: false);
+    }
+
+    private function collectUploadedFilePaths(bool $includeApplicationFiles = true): array
     {
         $paths = [];
 
@@ -179,8 +303,11 @@ class TahapPenyusunanController extends Controller
         $paths = array_merge($paths, FinalDraft::query()->whereNotNull('file_path')->pluck('file_path')->all());
         $paths = array_merge($paths, PublicationModul::query()->whereNotNull('final_modul_file_path')->pluck('final_modul_file_path')->all());
         $paths = array_merge($paths, PublicationModul::query()->whereNotNull('sertifikat_hki_file_path')->pluck('sertifikat_hki_file_path')->all());
-        $paths = array_merge($paths, PenyusunApplication::query()->whereNotNull('draft_path')->pluck('draft_path')->all());
-        $paths = array_merge($paths, ReviewerApplication::query()->whereNotNull('sertifikasi_path')->pluck('sertifikasi_path')->all());
+
+        if ($includeApplicationFiles) {
+            $paths = array_merge($paths, PenyusunApplication::query()->whereNotNull('draft_path')->pluck('draft_path')->all());
+            $paths = array_merge($paths, ReviewerApplication::query()->whereNotNull('sertifikasi_path')->pluck('sertifikasi_path')->all());
+        }
 
         if (class_exists(FinalDraftReview::class)) {
             $paths = array_merge(
@@ -197,6 +324,22 @@ class TahapPenyusunanController extends Controller
         foreach ($paths as $path) {
             if ($path && Storage::disk('public')->exists($path)) {
                 Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    private function cleanupProgressUploadDirectories(): void
+    {
+        $directories = [
+            'moduls',
+            'final-drafts',
+            'publications',
+            'validation-signatures',
+        ];
+
+        foreach ($directories as $directory) {
+            if (Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->deleteDirectory($directory);
             }
         }
     }

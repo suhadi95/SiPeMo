@@ -77,12 +77,28 @@
             <div class="p-4 sm:p-6 text-gray-900">
                 @if($tahaps->count() > 0)
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Periode Tahap Penyusunan</h3>
-                        <button type="button"
-                                onclick="openResetModal()"
-                                class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm">
-                            Reset Periode
-                        </button>
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Periode Tahap Penyusunan</h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ $tahaps->first()->nama_periode }} · {{ $tahaps->count() }} tahap
+                            </p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <a href="{{ route('admin.tahap-penyusunan.periode.edit') }}"
+                               class="inline-flex justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                                Edit Periode
+                            </a>
+                            <button type="button"
+                                    onclick="openDeletePeriodeModal()"
+                                    class="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded text-sm">
+                                Hapus Periode
+                            </button>
+                            <button type="button"
+                                    onclick="openResetModal()"
+                                    class="w-full sm:w-auto bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm">
+                                Reset Periode
+                            </button>
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -131,7 +147,7 @@
                                             <div class="flex flex-wrap gap-2">
                                                 <a href="{{ route('admin.tahap-penyusunan.edit', $tahap) }}"
                                                    class="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded text-xs">
-                                                    Edit
+                                                    Edit Tahap
                                                 </a>
                                                 @if(!$tahap->is_active)
                                                     <form method="POST" action="{{ route('admin.tahap-penyusunan.activate', $tahap) }}" class="inline">
@@ -164,6 +180,46 @@
     </div>
 </div>
 
+<!-- Modal Konfirmasi Hapus Periode -->
+<div id="deletePeriodeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white" style="max-width: calc(100% - 2rem);">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+                <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-4">Konfirmasi Hapus Periode</h3>
+            <div class="mt-2 px-4 py-3 text-left">
+                <p class="text-sm text-gray-600 mb-2">
+                    Hapus periode dan progres penyusunan saja?
+                    <strong class="text-yellow-700">Tindakan ini tidak dapat dibatalkan.</strong>
+                </p>
+                <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+                    <li>Periode &amp; tahap penyusunan dihapus</li>
+                    <li>Progres modul, final draft, publikasi, dan file upload terkait dihapus</li>
+                    <li>Akun serta data pendaftaran <strong>penyusun &amp; reviewer tetap</strong></li>
+                    <li>Jurusan, Mata Kuliah, Admin, dan LPM tetap</li>
+                </ul>
+            </div>
+            <div class="flex justify-center gap-2 px-4 py-3">
+                <button type="button"
+                        onclick="closeDeletePeriodeModal()"
+                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Batal
+                </button>
+                <form method="POST" action="{{ route('admin.tahap-penyusunan.periode.destroy') }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+                        Ya, Hapus Periode
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Konfirmasi Reset -->
 <div id="resetModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white" style="max-width: calc(100% - 2rem);">
@@ -185,6 +241,9 @@
                     <li>Aplikasi dan akun User penyusun &amp; reviewer akan dihapus (harus daftar ulang)</li>
                     <li>Yang <strong>tetap</strong>: akun Admin &amp; LPM, data Jurusan, dan Mata Kuliah</li>
                 </ul>
+                <p class="text-xs text-gray-500 mt-3">
+                    Jika hanya ingin menghapus periode tanpa menghapus akun, gunakan <strong>Hapus Periode</strong>.
+                </p>
             </div>
             <div class="flex justify-center gap-2 px-4 py-3">
                 <button type="button"
@@ -213,9 +272,23 @@ function closeResetModal() {
     document.getElementById('resetModal').classList.add('hidden');
 }
 
+function openDeletePeriodeModal() {
+    document.getElementById('deletePeriodeModal').classList.remove('hidden');
+}
+
+function closeDeletePeriodeModal() {
+    document.getElementById('deletePeriodeModal').classList.add('hidden');
+}
+
 document.getElementById('resetModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeResetModal();
+    }
+});
+
+document.getElementById('deletePeriodeModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeletePeriodeModal();
     }
 });
 </script>

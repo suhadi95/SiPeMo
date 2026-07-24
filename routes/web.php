@@ -143,10 +143,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/tahap-penyusunan/create', [TahapPenyusunanController::class, 'create'])->name('admin.tahap-penyusunan.create');
     Route::post('/admin/tahap-penyusunan', [TahapPenyusunanController::class, 'store'])->name('admin.tahap-penyusunan.store');
     Route::put('/admin/tahap-penyusunan/template', [TahapPenyusunanController::class, 'updateTemplate'])->name('admin.tahap-penyusunan.template.update');
+    Route::get('/admin/tahap-penyusunan/periode/edit', [TahapPenyusunanController::class, 'editPeriode'])->name('admin.tahap-penyusunan.periode.edit');
+    Route::put('/admin/tahap-penyusunan/periode', [TahapPenyusunanController::class, 'updatePeriode'])->name('admin.tahap-penyusunan.periode.update');
+    Route::post('/admin/tahap-penyusunan/periode/delete', [TahapPenyusunanController::class, 'destroyPeriode'])->name('admin.tahap-penyusunan.periode.destroy');
+    Route::post('/admin/tahap-penyusunan/reset', [TahapPenyusunanController::class, 'reset'])->name('admin.tahap-penyusunan.reset');
     Route::get('/admin/tahap-penyusunan/{tahap}/edit', [TahapPenyusunanController::class, 'edit'])->name('admin.tahap-penyusunan.edit');
     Route::put('/admin/tahap-penyusunan/{tahap}', [TahapPenyusunanController::class, 'update'])->name('admin.tahap-penyusunan.update');
     Route::post('/admin/tahap-penyusunan/{tahap}/activate', [TahapPenyusunanController::class, 'activate'])->name('admin.tahap-penyusunan.activate');
-    Route::post('/admin/tahap-penyusunan/reset', [TahapPenyusunanController::class, 'reset'])->name('admin.tahap-penyusunan.reset');
 
     // Admin kriteria penilaian reviewer
     Route::get('/admin/review-aspek', [ReviewAspekController::class, 'index'])->name('admin.review-aspek.index');
