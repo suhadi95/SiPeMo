@@ -30,7 +30,7 @@
 <body>
     <div class="title">
         <h1>FORM VALIDASI BAHAN AJAR MODULAR PJJ</h1>
-        <h2>LP2M UINSSC</h2>
+        <h2>UPT PJJ UINSSC</h2>
     </div>
 
     <div class="muted">
