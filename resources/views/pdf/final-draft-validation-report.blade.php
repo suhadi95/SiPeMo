@@ -96,7 +96,12 @@
 
     <div class="section">
         <div class="section-title">D. Penilaian Umum</div>
-        <div style="margin-bottom: 6px;"><strong>1. Kelayakan Modul</strong></div>
+        <div style="margin-bottom: 6px;">
+            <strong>1. Kelayakan Modul</strong>
+            @if($review->maksimal_skor > 0)
+                <span style="font-size: 10px; color: #374151;">(Skor: {{ $review->total_skor }}/{{ $review->maksimal_skor }} &middot; {{ $review->persentase_skor }}%)</span>
+            @endif
+        </div>
         @foreach($hasilOptions as $key => $label)
             <div style="margin-bottom: 3px;">
                 <span class="check">{{ $review->hasil_penilaian === $key ? '[x]' : '[ ]' }}</span> {{ $label }}

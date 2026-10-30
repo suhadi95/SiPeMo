@@ -112,6 +112,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/reviewer', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'index'])->name('admin.reviewer.index');
     Route::get('/admin/reviewer/{application}', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'show'])->name('admin.reviewer.show');
     Route::get('/admin/reviewer/{application}/download-certification', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'downloadCertification'])->name('admin.reviewer.download-certification');
+    Route::get('/admin/reviewer/{application}/download-history-pdf', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'downloadReviewHistoryPdf'])->name('admin.reviewer.download-history-pdf');
     Route::post('/admin/reviewer/{application}/approve', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'approve'])->name('admin.reviewer.approve');
     Route::post('/admin/reviewer/{application}/reject', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'reject'])->name('admin.reviewer.reject');
     Route::delete('/admin/reviewer/{application}', [\App\Http\Controllers\Admin\ReviewerApplicationAdminController::class, 'destroy'])->name('admin.reviewer.destroy');
@@ -184,6 +185,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/final-draft/{finalDraft}', [AdminFinalDraftController::class, 'show'])->name('admin.final-draft.show');
     Route::get('/admin/final-draft/{finalDraft}/download', [AdminFinalDraftController::class, 'download'])->name('admin.final-draft.download');
     Route::get('/admin/final-draft/{finalDraft}/validation-report/pdf', [AdminFinalDraftController::class, 'validationReportPdf'])->name('admin.final-draft.validation-report.pdf');
+    Route::post('/admin/final-draft/{penyusun}/assign-reviewers', [AdminFinalDraftController::class, 'assignReviewers'])->name('admin.final-draft.assign-reviewers');
+    Route::get('/admin/final-draft/{penyusun}/reviews-pdf', [AdminFinalDraftController::class, 'downloadModulReviewsPdf'])->name('admin.final-draft.reviews-pdf');
 
     // Admin publication
     Route::get('/admin/publication', [AdminPublicationController::class, 'index'])->name('admin.publication.index');

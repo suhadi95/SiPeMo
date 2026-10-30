@@ -175,7 +175,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Reviewer</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIDN</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mata Kuliah</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rekening Bank</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No WA</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -200,18 +200,15 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ $app->nidn }}
                                     </td>
-                                    <td class="px-6 py-4">
-                                        @if($assignedMk->isNotEmpty())
-                                            <div class="space-y-1">
-                                                @foreach($assignedMk as $mk)
-                                                    <div class="text-sm text-gray-900">{{ $mk->nama_mata_kuliah }}</div>
-                                                    @if($mk->kode_mata_kuliah)
-                                                        <div class="text-xs text-gray-500">{{ $mk->kode_mata_kuliah }}</div>
-                                                    @endif
-                                                @endforeach
-                                            </div>
+                                    <td class="px-6 py-4 text-sm text-gray-700">
+                                        @if($app->nomor_rekening)
+                                            <div class="font-medium text-gray-900">{{ $app->nama_bank ?? 'Bank' }}</div>
+                                            <div class="text-xs text-gray-500">{{ $app->nomor_rekening }}</div>
+                                            @if($app->nama_pemilik_rekening)
+                                                <div class="text-[11px] text-gray-400">a.n. {{ $app->nama_pemilik_rekening }}</div>
+                                            @endif
                                         @else
-                                            <span class="text-sm text-gray-400">Belum ditugaskan</span>
+                                            <span class="text-xs text-gray-400 italic">-</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -236,7 +233,12 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('admin.reviewer.show', $app) }}" class="text-indigo-600 hover:text-indigo-900">Lihat Detail</a>
+                                        <div class="flex flex-col gap-1">
+                                            <a href="{{ route('admin.reviewer.show', $app) }}" class="text-indigo-600 hover:text-indigo-900">Lihat Detail</a>
+                                            @if($app->status === 'approved')
+                                                <a href="{{ route('admin.reviewer.download-history-pdf', $app) }}" class="text-blue-600 hover:text-blue-900 text-xs">Unduh Riwayat</a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

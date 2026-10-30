@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PenyusunApplication extends Model
@@ -69,6 +70,13 @@ class PenyusunApplication extends Model
     public function finalDrafts(): HasMany
     {
         return $this->hasMany(FinalDraft::class);
+    }
+
+    public function reviewers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'penyusun_application_reviewers', 'penyusun_application_id', 'reviewer_id')
+            ->withPivot(['assigned_by', 'assigned_at'])
+            ->withTimestamps();
     }
 
     public function user(): BelongsTo

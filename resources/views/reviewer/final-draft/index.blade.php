@@ -119,8 +119,10 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex flex-col gap-1">
                                             <a href="{{ route('reviewer.final-draft.show', $draft) }}" class="text-indigo-600 hover:text-indigo-900">Detail Draft</a>
-                                            @if($draft->status === 'pending_review')
+                                            @if(in_array($draft->status, ['pending_review', 'pending']) && !$draft->isReviewCompletedBy(Auth::id()))
                                                 <a href="{{ route('reviewer.final-draft.assess', $draft) }}" class="text-blue-600 hover:text-blue-900 font-medium">Isi Penilaian</a>
+                                            @elseif($draft->isReviewCompletedBy(Auth::id()))
+                                                <span class="text-xs text-green-600 font-medium">Sudah Dinilai</span>
                                             @endif
                                         </div>
                                     </td>

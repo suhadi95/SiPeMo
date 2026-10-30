@@ -102,6 +102,34 @@
                         <x-input-error :messages="$errors->get('nip')" class="mt-1" />
                     </div>
 
+                    <!-- Informasi Rekening Bank -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-900">Informasi Rekening Bank (Honorarium)</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">Digunakan untuk pencairan honorarium review bahan ajar.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <x-input-label for="nama_bank" value="Nama Bank" class="text-xs font-medium text-gray-700" />
+                                <x-text-input id="nama_bank" name="nama_bank" type="text" class="w-full mt-1 text-sm" :value="old('nama_bank')" placeholder="Contoh: BSI, BRI, BCA" required />
+                                <x-input-error :messages="$errors->get('nama_bank')" class="mt-1" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="nomor_rekening" value="Nomor Rekening" class="text-xs font-medium text-gray-700" />
+                                <x-text-input id="nomor_rekening" name="nomor_rekening" type="text" class="w-full mt-1 text-sm" :value="old('nomor_rekening')" placeholder="Nomor rekening aktif" inputmode="numeric" required />
+                                <x-input-error :messages="$errors->get('nomor_rekening')" class="mt-1" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="nama_pemilik_rekening" value="Nama Pemilik Rekening" class="text-xs font-medium text-gray-700" />
+                                <x-text-input id="nama_pemilik_rekening" name="nama_pemilik_rekening" type="text" class="w-full mt-1 text-sm" :value="old('nama_pemilik_rekening')" placeholder="Sesuai buku tabungan" required />
+                                <x-input-error :messages="$errors->get('nama_pemilik_rekening')" class="mt-1" />
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Upload Sertifikasi -->
                     <div class="bg-gray-50 border border-gray-200 rounded-xl p-6">
                         <x-input-label for="sertifikasi" value="Upload Dokumen Sertifikasi / Keahlian" class="text-base font-semibold text-gray-900 mb-2" />

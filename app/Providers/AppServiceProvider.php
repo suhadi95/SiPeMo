@@ -186,11 +186,24 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($user->is_reviewer) {
-                // Reviewer: jumlah final draft yang ditugaskan dan menunggu review
+                // Reviewer: jumlah final draft yang ditugaskan dan belum dinilai oleh reviewer ini
+                $assignedAppIds = $user->assignedPenyusunApplications()->pluck('penyusun_applications.id')->toArray();
                 $reviewerMataKuliahIds = \App\Models\MataKuliah::where('reviewer_id', $user->id)->pluck('id')->toArray();
-                $reviewerPending = FinalDraft::whereIn('mata_kuliah_id', $reviewerMataKuliahIds)
-                    ->where('status', 'pending_review')
-                    ->count();
+
+                $reviewerPending = FinalDraft::where(function ($q) use ($assignedAppIds, $reviewerMataKuliahIds) {
+                    if (!empty($assignedAppIds)) {
+                        $q->whereIn('penyusun_application_id', $assignedAppIds);
+                    }
+                    if (!empty($reviewerMataKuliahIds)) {
+                        $q->orWhereIn('mata_kuliah_id', $reviewerMataKuliahIds);
+                    }
+                    if (empty($assignedAppIds) && empty($reviewerMataKuliahIds)) {
+                        $q->whereRaw('1 = 0');
+                    }
+                })->whereIn('status', ['pending_review', 'pending'])
+                ->whereDoesntHave('reviews', function ($q) use ($user) {
+                    $q->where('reviewer_id', $user->id);
+                })->count();
 
                 $notificationItems[] = [
                     'label' => 'Final Draft Menunggu Review',

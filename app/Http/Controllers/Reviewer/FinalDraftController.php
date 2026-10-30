@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class FinalDraftController extends Controller
 {
@@ -23,10 +22,20 @@ class FinalDraftController extends Controller
     {
         $user = Auth::user();
 
-        $mataKuliahIds = MataKuliah::where('reviewer_id', $user->id)->pluck('id')->toArray();
+        $assignedAppIds = $user->assignedPenyusunApplications()->pluck('penyusun_applications.id')->toArray();
+        $legacyMkIds = MataKuliah::where('reviewer_id', $user->id)->pluck('id')->toArray();
 
-        $query = FinalDraft::whereIn('mata_kuliah_id', $mataKuliahIds)
-            ->with(['mataKuliah.jurusan']);
+        $query = FinalDraft::where(function ($q) use ($assignedAppIds, $legacyMkIds) {
+            if (!empty($assignedAppIds)) {
+                $q->whereIn('penyusun_application_id', $assignedAppIds);
+            }
+            if (!empty($legacyMkIds)) {
+                $q->orWhereIn('mata_kuliah_id', $legacyMkIds);
+            }
+            if (empty($assignedAppIds) && empty($legacyMkIds)) {
+                $q->whereRaw('1 = 0');
+            }
+        })->with(['mataKuliah.jurusan', 'penyusunApplication', 'reviews']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -54,7 +63,7 @@ class FinalDraftController extends Controller
 
     public function show(FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mereview final draft ini.');
         }
 
@@ -63,26 +72,33 @@ class FinalDraftController extends Controller
             'reviewerValidator',
             'lpmValidator',
             'activityLogs.actor',
-            'latestReview.answers',
-            'latestReview.reviewer',
+            'reviews.answers',
+            'reviews.reviewer',
         ]);
+
+        $myReview = $finalDraft->reviewBy(Auth::id());
 
         $hasActiveKriteria = ReviewAspek::active()
             ->whereHas('activePertanyaans')
             ->exists();
 
-        return view('reviewer.final-draft.show', compact('finalDraft', 'hasActiveKriteria'));
+        return view('reviewer.final-draft.show', compact('finalDraft', 'hasActiveKriteria', 'myReview'));
     }
 
     public function assess(FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mereview final draft ini.');
         }
 
-        if ($finalDraft->status !== 'pending_review') {
+        if ($finalDraft->isReviewCompletedBy(Auth::id())) {
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
-                ->with('error', 'Final draft ini sudah dinilai dan tidak dapat dinilai ulang.');
+                ->with('error', 'Anda sudah menyelesaikan penilaian untuk final draft ini.');
+        }
+
+        if (!in_array($finalDraft->status, ['pending_review', 'pending'], true)) {
+            return redirect()->route('reviewer.final-draft.show', $finalDraft)
+                ->with('error', 'Final draft ini tidak dalam status menunggu review.');
         }
 
         $finalDraft->load(['mataKuliah.jurusan']);
@@ -96,18 +112,22 @@ class FinalDraftController extends Controller
 
         $likertLabels = FinalDraftReview::LIKERT_LABELS;
         $hasilOptions = FinalDraftReview::HASIL_OPTIONS;
+        $totalPertanyaan = $aspeks->sum(fn ($a) => $a->activePertanyaans->count());
+        $maksimalSkor = $totalPertanyaan * 5;
 
         return view('reviewer.final-draft.assess', compact(
             'finalDraft',
             'aspeks',
             'likertLabels',
-            'hasilOptions'
+            'hasilOptions',
+            'totalPertanyaan',
+            'maksimalSkor'
         ));
     }
 
     public function download(FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mendownload file ini.');
         }
 
@@ -123,12 +143,12 @@ class FinalDraftController extends Controller
 
     public function validationReportForm(FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk melengkapi laporan validasi ini.');
         }
 
-        $finalDraft->load(['mataKuliah.jurusan', 'penyusunApplication', 'latestReview.answers', 'latestReview.reviewer']);
-        $review = $finalDraft->latestReview;
+        $finalDraft->load(['mataKuliah.jurusan', 'penyusunApplication']);
+        $review = $finalDraft->reviewBy(Auth::id());
 
         if (!$review || !$review->requiresValidationReport()) {
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
@@ -143,12 +163,11 @@ class FinalDraftController extends Controller
 
     public function storeValidationReport(Request $request, FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk menyimpan laporan validasi ini.');
         }
 
-        $finalDraft->load('latestReview');
-        $review = $finalDraft->latestReview;
+        $review = $finalDraft->reviewBy(Auth::id());
 
         if (!$review || !$review->requiresValidationReport()) {
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
@@ -163,35 +182,35 @@ class FinalDraftController extends Controller
             'validator_bidang_keahlian' => 'required|string|max:255',
             'validator_kontak' => 'required|string|max:255',
             'rekomendasi_validator' => 'required|string|max:2000',
-            'signature' => [$hasExistingSignature ? 'nullable' : 'required', 'string'],
+            'signature_file' => [
+                $hasExistingSignature ? 'nullable' : 'required',
+                'file',
+                'mimes:jpg,jpeg,png,webp,svg',
+                'max:3072', // Max 3MB
+            ],
         ], [
             'validator_institusi.required' => 'Institusi / unit kerja wajib diisi.',
             'validator_bidang_keahlian.required' => 'Bidang keahlian wajib diisi.',
             'validator_kontak.required' => 'Email / kontak wajib diisi.',
             'rekomendasi_validator.required' => 'Rekomendasi validator wajib diisi.',
-            'signature.required' => 'Tanda tangan wajib diisi.',
+            'signature_file.required' => 'Berkas tanda tangan wajib diunggah.',
+            'signature_file.mimes' => 'Format berkas tanda tangan harus berupa gambar (JPG, PNG, WEBP, atau SVG).',
+            'signature_file.max' => 'Ukuran berkas tanda tangan maksimal 3MB.',
         ]);
 
         $signaturePath = $review->validator_signature;
 
-        if ($request->filled('signature')) {
-            if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $request->signature)) {
-                return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
-                    ->withInput()
-                    ->with('error', 'Format tanda tangan tidak valid. Silakan gambar ulang tanda tangan.');
-            }
+        if ($request->hasFile('signature_file')) {
+            $file = $request->file('signature_file');
+            $extension = $file->getClientOriginalExtension();
+            $fileName = 'review_' . $review->id . '_' . time() . '.' . $extension;
+            $path = $file->storeAs('validation-signatures', $fileName, 'public');
 
-            $newSignaturePath = $this->storeSignatureImage($request->signature, $review);
-
-            if ($review->validator_signature && $review->validator_signature !== $newSignaturePath) {
+            if ($review->validator_signature && $review->validator_signature !== $path && Storage::disk('public')->exists($review->validator_signature)) {
                 Storage::disk('public')->delete($review->validator_signature);
             }
 
-            $signaturePath = $newSignaturePath;
-        } elseif (!$hasExistingSignature) {
-            return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
-                ->withInput()
-                ->with('error', 'Tanda tangan wajib diisi.');
+            $signaturePath = $path;
         }
 
         try {
@@ -223,22 +242,27 @@ class FinalDraftController extends Controller
 
     public function validationReportPdf(FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengunduh laporan validasi ini.');
         }
 
-        return $this->downloadValidationReportPdf($finalDraft, 'reviewer.final-draft.show');
+        $review = $finalDraft->reviewBy(Auth::id());
+        if (!$review) {
+            $review = $finalDraft->latestReview;
+        }
+
+        return $this->downloadValidationReportPdf($finalDraft, $review, 'reviewer.final-draft.show');
     }
 
     public function validateDraft(Request $request, FinalDraft $finalDraft)
     {
-        if ($finalDraft->mataKuliah->reviewer_id !== Auth::id()) {
+        if (!$this->isAuthorizedReviewer($finalDraft)) {
             abort(403, 'Anda tidak memiliki hak akses untuk memvalidasi draft ini.');
         }
 
-        if ($finalDraft->status !== 'pending_review') {
+        if ($finalDraft->isReviewCompletedBy(Auth::id())) {
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
-                ->with('error', 'Final draft ini sudah dinilai dan tidak dapat dinilai ulang.');
+                ->with('error', 'Anda sudah menilai final draft ini.');
         }
 
         $aspeks = ReviewAspek::active()
@@ -253,22 +277,12 @@ class FinalDraftController extends Controller
                 ->with('error', 'Belum ada kriteria penilaian aktif. Hubungi admin untuk menambahkan aspek dan pertanyaan.');
         }
 
-        $hasilKeys = array_keys(FinalDraftReview::HASIL_OPTIONS);
-
         $request->validate([
-            'hasil_penilaian' => ['required', Rule::in($hasilKeys)],
-            'catatan_revisi' => [
-                Rule::requiredIf(fn () => $request->hasil_penilaian !== FinalDraftReview::HASIL_SANGAT_LAYAK),
-                'nullable',
-                'string',
-                'max:2000',
-            ],
             'jawaban' => 'required|array',
             'jawaban.*.skor' => 'required|integer|min:1|max:5',
             'jawaban.*.catatan' => 'nullable|string|max:1000',
+            'catatan_revisi' => 'nullable|string|max:2000',
         ], [
-            'hasil_penilaian.required' => 'Hasil penilaian wajib dipilih.',
-            'catatan_revisi.required' => 'Catatan revisi wajib diisi jika hasil bukan Sangat Layak.',
             'jawaban.*.skor.required' => 'Setiap pertanyaan wajib diberi skor Likert 1–5.',
         ]);
 
@@ -280,12 +294,28 @@ class FinalDraftController extends Controller
             }
         }
 
+        // Hitung total skor & persentase secara otomatis
+        $totalSkor = 0;
+        foreach ($pertanyaanIds as $pertanyaanId) {
+            $totalSkor += (int) $request->jawaban[$pertanyaanId]['skor'];
+        }
+        $maksimalSkor = count($pertanyaanIds) * 5;
+        $persentase = $maksimalSkor > 0 ? round(($totalSkor / $maksimalSkor) * 100, 1) : 0;
+
+        // Aturan keputusan: total skor >= 80% = Sangat Layak, < 80% = Perlu Perbaikan
+        $isSangatLayak = $persentase >= 80.0;
+        $hasil = $isSangatLayak ? FinalDraftReview::HASIL_SANGAT_LAYAK : FinalDraftReview::HASIL_PERLU_PERBAIKAN;
+
+        // Jika perlu perbaikan, catatan revisi wajib diisi
+        if (!$isSangatLayak && empty(trim((string) $request->catatan_revisi))) {
+            return redirect()->route('reviewer.final-draft.assess', $finalDraft)
+                ->withInput()
+                ->withErrors(['catatan_revisi' => 'Catatan revisi wajib diisi jika hasil penilaian adalah Perlu Perbaikan (skor di bawah 80%).']);
+        }
+
         try {
-            DB::transaction(function () use ($request, $finalDraft, $aspeks) {
-                $hasil = $request->hasil_penilaian;
-                $isSangatLayak = $hasil === FinalDraftReview::HASIL_SANGAT_LAYAK;
-                $statusNew = $isSangatLayak ? 'approved_by_reviewer' : 'rejected_by_reviewer';
-                $catatanRevisi = $isSangatLayak ? null : $request->catatan_revisi;
+            DB::transaction(function () use ($request, $finalDraft, $aspeks, $hasil, $isSangatLayak) {
+                $catatanRevisi = $request->catatan_revisi;
 
                 $review = FinalDraftReview::create([
                     'final_draft_id' => $finalDraft->id,
@@ -308,10 +338,15 @@ class FinalDraftController extends Controller
                     }
                 }
 
+                // Evaluasi status agregat multi-reviewer
+                $statusNew = $finalDraft->evaluateMultiReviewerStatus();
+
                 $finalDraft->update([
                     'status' => $statusNew,
-                    'hasil_penilaian' => $hasil,
-                    'catatan_reviewer' => $catatanRevisi,
+                    'hasil_penilaian' => $statusNew === 'approved_by_reviewer'
+                        ? FinalDraftReview::HASIL_SANGAT_LAYAK
+                        : ($statusNew === 'rejected_by_reviewer' ? FinalDraftReview::HASIL_PERLU_PERBAIKAN : $hasil),
+                    'catatan_reviewer' => $catatanRevisi ?: $finalDraft->catatan_reviewer,
                     'reviewer_validated_at' => now(),
                     'reviewer_validated_by' => Auth::id(),
                 ]);
@@ -327,21 +362,21 @@ class FinalDraftController extends Controller
                 ]);
             });
 
-            Log::info('Final draft validated by Reviewer (Likert)', [
+            Log::info('Final draft validated by Reviewer (Likert Otomatis)', [
                 'final_draft_id' => $finalDraft->id,
-                'hasil_penilaian' => $request->hasil_penilaian,
                 'reviewer_id' => Auth::id(),
+                'total_skor' => $totalSkor,
+                'persentase' => $persentase,
+                'hasil' => $hasil,
             ]);
 
-            $message = $request->hasil_penilaian === FinalDraftReview::HASIL_SANGAT_LAYAK
-                ? 'Penilaian tersimpan. Lengkapi form laporan validasi untuk menghasilkan PDF pelaporan.'
-                : 'Penilaian tersimpan. Final draft dikembalikan ke penyusun untuk perbaikan.';
-
-            if ($request->hasil_penilaian === FinalDraftReview::HASIL_SANGAT_LAYAK) {
+            if ($isSangatLayak) {
+                $message = "Penilaian tersimpan (Skor: {$persentase}% - Sangat Layak). Silakan lengkapi tanda tangan dan laporan validasi.";
                 return redirect()->route('reviewer.final-draft.validation-report.form', $finalDraft)
                     ->with('success', $message);
             }
 
+            $message = "Penilaian tersimpan (Skor: {$persentase}% - Perlu Perbaikan). Modul dikembalikan ke Penyusun untuk direvisi.";
             return redirect()->route('reviewer.final-draft.show', $finalDraft)
                 ->with('success', $message);
         } catch (\Exception $e) {
@@ -353,31 +388,29 @@ class FinalDraftController extends Controller
         }
     }
 
-    private function storeSignatureImage(string $signatureData, FinalDraftReview $review): string
+    private function isAuthorizedReviewer(FinalDraft $finalDraft): bool
     {
-        $imageData = substr($signatureData, strpos($signatureData, ',') + 1);
-        $decoded = base64_decode($imageData, true);
+        $userId = Auth::id();
 
-        if ($decoded === false) {
-            throw new \RuntimeException('Gagal memproses tanda tangan.');
+        // 1. Cek tabel pivot multi-reviewer
+        if ($finalDraft->penyusunApplication && $finalDraft->penyusunApplication->reviewers()->where('users.id', $userId)->exists()) {
+            return true;
         }
 
-        $fileName = 'validation-signatures/review_' . $review->id . '_' . time() . '.png';
-        Storage::disk('public')->put($fileName, $decoded);
+        // 2. Cek backward-compatibility mata kuliah
+        if ($finalDraft->mataKuliah && $finalDraft->mataKuliah->reviewer_id === $userId) {
+            return true;
+        }
 
-        return $fileName;
+        return false;
     }
 
-    private function downloadValidationReportPdf(FinalDraft $finalDraft, string $redirectRoute)
+    private function downloadValidationReportPdf(FinalDraft $finalDraft, ?FinalDraftReview $review, string $redirectRoute)
     {
         $finalDraft->load([
             'mataKuliah.jurusan',
             'penyusunApplication',
-            'latestReview.answers',
-            'latestReview.reviewer',
         ]);
-
-        $review = $finalDraft->latestReview;
 
         if (!$review || !$review->requiresValidationReport()) {
             return redirect()->route($redirectRoute, $finalDraft)
@@ -400,7 +433,7 @@ class FinalDraftController extends Controller
             'isRemoteEnabled' => true,
         ]);
 
-        $fileName = 'Form_Validasi_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . '.pdf';
+        $fileName = 'Form_Validasi_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . '_' . ($review->reviewer->id ?? 'r') . '.pdf';
 
         return $pdf->download($fileName);
     }

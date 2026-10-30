@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinalDraft;
+use App\Models\FinalDraftReview;
 use App\Models\Jurusan;
 use App\Models\PenyusunApplication;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,7 +21,7 @@ class FinalDraftController extends Controller
     public function index(Request $request)
     {
         $allPenyusuns = PenyusunApplication::where('status', 'approved')
-            ->with(['mataKuliah.jurusan', 'moduls.tahapPenyusunan', 'finalDrafts', 'publicationModuls'])
+            ->with(['mataKuliah.jurusan', 'moduls.tahapPenyusunan', 'finalDrafts.reviews.reviewer', 'publicationModuls', 'reviewers'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -79,12 +81,14 @@ class FinalDraftController extends Controller
         }
 
         $jurusans = $allJurusans;
+        $availableReviewers = User::where('is_reviewer', true)->orderBy('name')->get();
 
         return view('admin.final-draft.index', compact(
             'penyusunsByJurusanWithAll',
             'finalDrafts',
             'paginator',
-            'jurusans'
+            'jurusans',
+            'availableReviewers'
         ));
     }
 
@@ -124,9 +128,79 @@ class FinalDraftController extends Controller
 
     public function show(FinalDraft $finalDraft)
     {
-        $finalDraft->load(['penyusunApplication', 'mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers', 'latestReview.reviewer']);
+        $finalDraft->load([
+            'penyusunApplication.reviewers',
+            'mataKuliah.jurusan',
+            'lpmValidator',
+            'reviewerValidator',
+            'activityLogs.actor',
+            'reviews.answers',
+            'reviews.reviewer',
+        ]);
         
         return view('admin.final-draft.show', compact('finalDraft'));
+    }
+
+    public function assignReviewers(Request $request, PenyusunApplication $penyusun)
+    {
+        $request->validate([
+            'reviewer_ids' => 'nullable|array',
+            'reviewer_ids.*' => 'exists:users,id',
+        ]);
+
+        $reviewerIds = $request->input('reviewer_ids', []);
+        $validReviewerIds = User::whereIn('id', $reviewerIds)->where('is_reviewer', true)->pluck('id')->toArray();
+
+        $syncData = [];
+        foreach ($validReviewerIds as $revId) {
+            $syncData[$revId] = [
+                'assigned_by' => Auth::id(),
+                'assigned_at' => now(),
+            ];
+        }
+
+        $penyusun->reviewers()->sync($syncData);
+
+        // Jika modul sudah memiliki final draft dan berstatus pending_review, evaluasi kembali
+        $finalDraft = $penyusun->finalDrafts()->first();
+        if ($finalDraft && in_array($finalDraft->status, ['pending_review', 'pending'], true)) {
+            $statusNew = $finalDraft->evaluateMultiReviewerStatus();
+            $finalDraft->update(['status' => $statusNew]);
+        }
+
+        return redirect()->back()->with('success', 'Penugasan reviewer untuk modul "' . $penyusun->judul_bahan_ajar . '" berhasil diperbarui.');
+    }
+
+    public function downloadModulReviewsPdf(PenyusunApplication $penyusun)
+    {
+        $penyusun->load([
+            'mataKuliah.jurusan',
+            'reviewers',
+            'finalDrafts.reviews.answers',
+            'finalDrafts.reviews.reviewer',
+        ]);
+
+        $finalDraft = $penyusun->finalDrafts->first();
+        if (!$finalDraft || $finalDraft->reviews->isEmpty()) {
+            return redirect()->back()->with('error', 'Belum ada riwayat review yang dikirimkan untuk modul ini.');
+        }
+
+        $pdf = Pdf::loadView('pdf.modul-all-reviews', [
+            'penyusun' => $penyusun,
+            'finalDraft' => $finalDraft,
+            'reviews' => $finalDraft->reviews,
+            'likertLabels' => FinalDraftReview::LIKERT_LABELS,
+            'hasilOptions' => FinalDraftReview::HASIL_OPTIONS,
+        ])->setPaper('a4', 'portrait')->setOptions([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+        ]);
+
+        $safeTitle = preg_replace('/[^A-Za-z0-9_\-]/', '_', substr($penyusun->judul_bahan_ajar, 0, 30));
+        $fileName = 'Hasil_Review_' . $safeTitle . '_FD-' . str_pad((string) $finalDraft->id, 5, '0', STR_PAD_LEFT) . '.pdf';
+
+        return $pdf->download($fileName);
     }
 
     public function download(FinalDraft $finalDraft)

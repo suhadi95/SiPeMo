@@ -192,7 +192,17 @@
             </div>
         </div>
 
-        @if($finalDraft->latestReview)
+        @if($finalDraft->reviews->isNotEmpty())
+            <div class="mt-6 space-y-4">
+                <h4 class="text-base font-semibold text-gray-900">Catatan & Evaluasi Reviewer</h4>
+                @foreach($finalDraft->reviews as $rev)
+                    <div class="border-t border-gray-200 pt-3">
+                        <div class="text-xs font-bold text-gray-500 uppercase mb-2">Reviewer {{ $loop->iteration }}</div>
+                        <x-final-draft-review-summary :review="$rev" />
+                    </div>
+                @endforeach
+            </div>
+        @elseif($finalDraft->latestReview)
             <div class="mt-6">
                 <x-final-draft-review-summary :review="$finalDraft->latestReview" />
             </div>

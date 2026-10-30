@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -97,5 +98,17 @@ class User extends Authenticatable
     public function reviewerValidatedFinalDrafts(): HasMany
     {
         return $this->hasMany(FinalDraft::class, 'reviewer_validated_by');
+    }
+
+    public function assignedPenyusunApplications(): BelongsToMany
+    {
+        return $this->belongsToMany(PenyusunApplication::class, 'penyusun_application_reviewers', 'reviewer_id', 'penyusun_application_id')
+            ->withPivot(['assigned_by', 'assigned_at'])
+            ->withTimestamps();
+    }
+
+    public function finalDraftReviews(): HasMany
+    {
+        return $this->hasMany(FinalDraftReview::class, 'reviewer_id');
     }
 }

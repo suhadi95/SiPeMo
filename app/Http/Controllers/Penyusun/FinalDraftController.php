@@ -39,7 +39,7 @@ class FinalDraftController extends Controller
 
         // Ambil final draft yang sudah diupload
         $finalDraft = FinalDraft::where('penyusun_application_id', $application->id)
-            ->with(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers'])
+            ->with(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers', 'reviews.answers'])
             ->first();
 
         return view('penyusun.final-draft.index', compact('application', 'finalDraft'));
@@ -359,7 +359,7 @@ class FinalDraftController extends Controller
             abort(403, 'Anda tidak memiliki akses ke final draft ini.');
         }
 
-        $finalDraft->load(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers']);
+        $finalDraft->load(['mataKuliah', 'lpmValidator', 'activityLogs.actor', 'latestReview.answers', 'reviews.answers']);
 
         return view('penyusun.final-draft.show', compact('finalDraft'));
     }

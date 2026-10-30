@@ -94,7 +94,16 @@
                     </div>
                 </div>
 
-                @if($finalDraft->latestReview)
+                @if($finalDraft->reviews->isNotEmpty())
+                    <div class="space-y-4">
+                        @foreach($finalDraft->reviews as $rev)
+                            <div>
+                                <div class="text-xs font-bold text-gray-500 uppercase mb-1">Penilaian oleh: {{ $rev->reviewer->name ?? 'Reviewer' }}</div>
+                                <x-final-draft-review-summary :review="$rev" />
+                            </div>
+                        @endforeach
+                    </div>
+                @elseif($finalDraft->latestReview)
                     <x-final-draft-review-summary :review="$finalDraft->latestReview" />
                 @endif
 

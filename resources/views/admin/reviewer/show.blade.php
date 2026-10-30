@@ -65,7 +65,20 @@
                         <span class="text-sm font-medium text-gray-900">{{ $application->nip ?? '-' }}</span>
                     </div>
                     <div>
-                        <span class="block text-xs font-semibold text-gray-500 uppercase">Status Pengisian</span>
+                        <span class="block text-xs font-semibold text-gray-500 uppercase">Rekening Bank</span>
+                        <span class="text-sm font-medium text-gray-900">
+                            @if($application->nomor_rekening)
+                                <span class="font-semibold">{{ $application->nama_bank ?? 'Bank' }}</span> - {{ $application->nomor_rekening }}
+                                @if($application->nama_pemilik_rekening)
+                                    <span class="block text-xs text-gray-500">a.n. {{ $application->nama_pemilik_rekening }}</span>
+                                @endif
+                            @else
+                                <span class="text-gray-400 italic">Belum diisi</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-gray-500 uppercase">Status Pengajuan</span>
                         <span class="text-sm">
                             @if($application->status === 'approved')
                                 <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Diterima</span>
@@ -91,17 +104,27 @@
                             </svg>
                             Unduh Sertifikat Keahlian
                         </a>
+
+                        @if($application->status === 'approved')
+                            <a href="{{ route('admin.reviewer.download-history-pdf', $application) }}"
+                               class="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Unduh Riwayat Review (PDF)
+                            </a>
+                        @endif
                     </div>
                 </div>
             </div>
 
-            <!-- Right Card: Actions & Course Mapping -->
+            <!-- Right Card: Actions or Review History -->
             <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-6 lg:col-span-2">
                 @if($application->status === 'pending')
                     <div x-data="{ activeTab: 'approve' }">
                         <div class="flex gap-4 mb-6">
                             <button type="button" @click="activeTab = 'approve'" :class="activeTab === 'approve' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'" class="w-1/2 py-2.5 text-center font-semibold rounded-lg text-sm transition-all focus:outline-none">
-                                Setujui & Atur Mata Kuliah
+                                Setujui Pendaftaran Reviewer
                             </button>
                             <button type="button" @click="activeTab = 'reject'" :class="activeTab === 'reject' ? 'bg-red-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'" class="w-1/2 py-2.5 text-center font-semibold rounded-lg text-sm transition-all focus:outline-none">
                                 Tolak Pengajuan
@@ -112,34 +135,15 @@
                         <div x-show="activeTab === 'approve'">
                             <form method="POST" action="{{ route('admin.reviewer.approve', $application) }}">
                                 @csrf
-                                <h3 class="text-base font-semibold text-gray-900 mb-3">Tugaskan Mata Kuliah untuk Ditinjau</h3>
-                                <p class="text-xs text-gray-500 mb-4">Pilih satu atau beberapa mata kuliah yang akan ditugaskan ke reviewer ini. 1 Mata Kuliah hanya dapat ditugaskan ke 1 Reviewer.</p>
-                                
-                                <div class="space-y-6 max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-4 mb-6">
-                                    @foreach($jurusans as $jurusan)
-                                        <div>
-                                            <h4 class="text-sm font-bold text-gray-700 bg-gray-100 p-2 rounded mb-2">{{ $jurusan->nama_jurusan }}</h4>
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-2">
-                                                @forelse($jurusan->mataKuliah as $mk)
-                                                    <div class="flex items-start">
-                                                        <input type="checkbox" name="mata_kuliah_ids[]" value="{{ $mk->id }}" id="mk_{{ $mk->id }}" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1" />
-                                                        <label for="mk_{{ $mk->id }}" class="ml-2 text-xs text-gray-700 leading-tight">
-                                                            <strong>{{ $mk->nama_mata_kuliah }}</strong> (Smtr {{ $mk->semester }}, {{ $mk->sks }} SKS)
-                                                            @if($mk->reviewer)
-                                                                <span class="block text-[10px] text-orange-600 font-medium mt-0.5">Sudah memiliki reviewer: {{ $mk->reviewer->name }}</span>
-                                                            @endif
-                                                        </label>
-                                                    </div>
-                                                @empty
-                                                    <span class="text-xs text-gray-500 italic pl-2">Tidak ada mata kuliah di jurusan ini.</span>
-                                                @endforelse
-                                            </div>
-                                        </div>
-                                    @endforeach
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-900">
+                                    <p class="font-semibold mb-1">Konfirmasi Persetujuan Reviewer</p>
+                                    <p class="text-xs text-blue-800">
+                                        Dengan menyetujui, akun reviewer akan dibuat/diaktifkan. Penetapan modul untuk direview dilakukan secara fleksibel melalui halaman <strong>Monitoring Final Draft Modul</strong>.
+                                    </p>
                                 </div>
 
-                                <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm shadow-sm transition">
-                                    Setujui Reviewer & Simpan Penugasan
+                                <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm shadow-sm transition">
+                                    Setujui Reviewer Ini
                                 </button>
                             </form>
                         </div>
@@ -163,77 +167,96 @@
                     </div>
 
                 @elseif($application->status === 'approved')
-                    <!-- Mengubah Penugasan Mata Kuliah setelah disetujui -->
-                    <form method="POST" action="{{ route('admin.reviewer.approve', $application) }}">
-                        @csrf
-                        <h3 class="text-base font-semibold text-gray-900 mb-2">Penugasan Mata Kuliah</h3>
-                        <p class="text-xs text-gray-500 mb-4">Gunakan form di bawah ini untuk memperbarui mata kuliah yang ditinjau oleh reviewer ini.</p>
-                        
-                        <div class="space-y-6 max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-4 mb-6">
-                            @foreach($jurusans as $jurusan)
-                                <div>
-                                    <h4 class="text-sm font-bold text-gray-700 bg-gray-100 p-2 rounded mb-2">{{ $jurusan->nama_jurusan }}</h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-2">
-                                        @forelse($jurusan->mataKuliah as $mk)
-                                            <div class="flex items-start">
-                                                <input type="checkbox" name="mata_kuliah_ids[]" value="{{ $mk->id }}" id="mk_{{ $mk->id }}" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1" 
-                                                    {{ in_array($mk->id, $assignedMkIds) ? 'checked' : '' }} />
-                                                <label for="mk_{{ $mk->id }}" class="ml-2 text-xs text-gray-700 leading-tight">
-                                                    <strong>{{ $mk->nama_mata_kuliah }}</strong> (Smtr {{ $mk->semester }}, {{ $mk->sks }} SKS)
-                                                    @if($mk->reviewer && $mk->reviewer_id !== $user->id)
-                                                        <span class="block text-[10px] text-orange-600 font-medium mt-0.5">Reviewer lain: {{ $mk->reviewer->name }}</span>
-                                                    @elseif($mk->reviewer_id === $user->id)
-                                                        <span class="block text-[10px] text-green-600 font-medium mt-0.5">Sedang ditugaskan ke reviewer ini</span>
-                                                    @endif
-                                                </label>
-                                            </div>
-                                        @empty
-                                            <span class="text-xs text-gray-500 italic pl-2">Tidak ada mata kuliah di jurusan ini.</span>
-                                        @endforelse
-                                    </div>
-                                </div>
-                            @endforeach
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900">Riwayat Penilaian Reviewer</h3>
+                                <p class="text-xs text-gray-500">Daftar seluruh modul yang telah dinilai oleh reviewer ini.</p>
+                            </div>
+                            <a href="{{ route('admin.reviewer.download-history-pdf', $application) }}"
+                               class="inline-flex items-center px-3 py-1.5 border border-indigo-300 rounded-md text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Cetak Riwayat (PDF)
+                            </a>
                         </div>
 
-                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm shadow-sm transition">
-                            Perbarui Penugasan Mata Kuliah
-                        </button>
-                    </form>
+                        @if($reviews->count() > 0)
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left">No</th>
+                                            <th class="px-4 py-2 text-left">Judul Modul</th>
+                                            <th class="px-4 py-2 text-left">Penyusun</th>
+                                            <th class="px-4 py-2 text-center">Skor Likert</th>
+                                            <th class="px-4 py-2 text-center">Keputusan</th>
+                                            <th class="px-4 py-2 text-left">Tanggal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        @foreach($reviews as $index => $r)
+                                            <tr>
+                                                <td class="px-4 py-2.5 text-gray-500">{{ $index + 1 }}</td>
+                                                <td class="px-4 py-2.5 font-medium text-gray-900">
+                                                    {{ $r->finalDraft->judul_modul ?? '-' }}
+                                                    <div class="text-xs text-gray-400">{{ $r->finalDraft->mataKuliah->nama_mata_kuliah ?? '-' }}</div>
+                                                </td>
+                                                <td class="px-4 py-2.5 text-gray-700">
+                                                    {{ $r->finalDraft->penyusunApplication->nama_penyusun ?? '-' }}
+                                                </td>
+                                                <td class="px-4 py-2.5 text-center">
+                                                    <span class="font-bold text-gray-900">{{ $r->total_skor }}</span>
+                                                    <span class="text-xs text-gray-400">/{{ $r->maksimal_skor }}</span>
+                                                    <div class="text-xs font-semibold text-blue-600">({{ $r->persentase_skor }}%)</div>
+                                                </td>
+                                                <td class="px-4 py-2.5 text-center">
+                                                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold {{ $r->isSangatLayak() ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800' }}">
+                                                        {{ $r->hasil_penilaian_label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-2.5 text-xs text-gray-500">
+                                                    {{ $r->submitted_at->format('d M Y') }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+                                Reviewer ini belum menyelesaikan penilaian modul apa pun.
+                            </div>
+                        @endif
 
-                    <!-- Danger Zone (Delete) -->
-                    <div class="mt-8 pt-6 border-t border-red-200">
-                        <h3 class="text-sm font-semibold text-red-600 uppercase mb-2">Danger Zone (Hapus Akun)</h3>
-                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <p class="text-xs text-red-800 mb-3">Menghapus data pendaftar reviewer yang disetujui akan menonaktifkan role Reviewer pengguna ini. Masukkan kata "YA" di bawah ini untuk mengonfirmasi.</p>
+                        <!-- Modul yang Sedang Ditugaskan -->
+                        <div class="pt-4 border-t border-gray-100">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-2">Modul yang Sedang Ditugaskan</h4>
+                            <p class="text-xs text-gray-500 mb-3">Untuk menambah atau mengubah penugasan reviewer pada modul, gunakan halaman <a href="{{ route('admin.final-draft.index') }}" class="text-blue-600 hover:underline">Monitoring Final Draft Modul</a>.</p>
                             
-                            <form method="POST" action="{{ route('admin.reviewer.destroy', $application) }}" class="flex flex-col sm:flex-row sm:items-center gap-3">
-                                @csrf
-                                @method('DELETE')
-                                <input type="text" name="confirmation" placeholder="Ketik YA di sini..." class="w-full sm:w-48 border-red-300 rounded text-xs focus:ring-red-500 focus:border-red-500" required />
-                                <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md text-xs shadow-sm transition">
-                                    Hapus Reviewer
-                                </button>
-                            </form>
+                            @if($assignedApplications->count() > 0)
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    @foreach($assignedApplications as $app)
+                                        <div class="p-3 border border-gray-200 rounded-lg bg-gray-50 text-xs">
+                                            <div class="font-semibold text-gray-900">{{ $app->judul_bahan_ajar }}</div>
+                                            <div class="text-gray-600 mt-0.5">{{ $app->mataKuliah->nama_mata_kuliah }} · {{ $app->nama_penyusun }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-xs text-gray-400 italic">Belum ada modul yang ditugaskan ke reviewer ini.</p>
+                            @endif
                         </div>
                     </div>
 
-                @elseif($application->status === 'rejected')
-                    <!-- Rejected Delete Button (no confirmation string needed) -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p class="text-sm text-gray-600 mb-4">Pengajuan pendaftaran reviewer ini telah ditolak. Anda dapat menghapus berkas pendaftaran dari sistem.</p>
-                        
-                        <form method="POST" action="{{ route('admin.reviewer.destroy', $application) }}">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="inline-flex justify-center items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md text-sm shadow-sm transition">
-                                Hapus Berkas Pendaftaran
-                            </button>
-                        </form>
+                @else
+                    <div class="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+                        Pendaftaran reviewer ini telah ditolak.
                     </div>
                 @endif
             </div>
         </div>
-
     </div>
 </div>
 @endsection

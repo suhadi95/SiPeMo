@@ -16,6 +16,9 @@ class ReviewerApplication extends Model
         'no_wa',
         'nip',
         'nidn',
+        'nomor_rekening',
+        'nama_bank',
+        'nama_pemilik_rekening',
         'sertifikasi_path',
         'sertifikasi_name',
         'status',
@@ -31,5 +34,10 @@ class ReviewerApplication extends Model
     public function validator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'validated_by');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'email', 'email');
     }
 }

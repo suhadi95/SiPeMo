@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ReviewerApplication;
+use App\Models\FinalDraftReview;
 use App\Models\MataKuliah;
-use App\Models\Jurusan;
+use App\Models\ReviewerApplication;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ReviewerApplicationAdminController extends Controller
@@ -22,7 +23,7 @@ class ReviewerApplicationAdminController extends Controller
         // Pencarian
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nama_reviewer', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('nidn', 'like', "%{$search}%");
@@ -44,9 +45,8 @@ class ReviewerApplicationAdminController extends Controller
 
         $applications = $query->paginate($perPage)->withQueryString();
 
-        // Map mata kuliah yang ditugaskan per email reviewer (untuk baris yang sudah approved)
         $usersByEmail = User::whereIn('email', $applications->pluck('email')->unique()->filter())
-            ->with(['reviewerMataKuliahs' => fn ($q) => $q->orderBy('nama_mata_kuliah')])
+            ->with(['assignedPenyusunApplications'])
             ->get()
             ->keyBy('email');
 
@@ -62,20 +62,25 @@ class ReviewerApplicationAdminController extends Controller
 
     public function show(ReviewerApplication $application)
     {
-        // Ambil semua jurusan dengan mata kuliah untuk di-assign
-        $jurusans = Jurusan::with('mataKuliah.reviewer')->orderBy('nama_jurusan')->get();
-        
-        // Ambil user reviewer jika statusnya approved
         $user = null;
-        $assignedMkIds = [];
+        $assignedApplications = collect();
+        $reviews = collect();
+
         if ($application->status === 'approved') {
             $user = User::where('email', $application->email)->first();
             if ($user) {
-                $assignedMkIds = MataKuliah::where('reviewer_id', $user->id)->pluck('id')->toArray();
+                $assignedApplications = $user->assignedPenyusunApplications()
+                    ->with(['mataKuliah.jurusan', 'finalDrafts'])
+                    ->get();
+
+                $reviews = FinalDraftReview::where('reviewer_id', $user->id)
+                    ->with(['finalDraft.mataKuliah.jurusan', 'finalDraft.penyusunApplication', 'answers'])
+                    ->orderByDesc('submitted_at')
+                    ->get();
             }
         }
 
-        return view('admin.reviewer.show', compact('application', 'jurusans', 'assignedMkIds', 'user'));
+        return view('admin.reviewer.show', compact('application', 'user', 'assignedApplications', 'reviews'));
     }
 
     public function approve(Request $request, ReviewerApplication $application)
@@ -84,20 +89,15 @@ class ReviewerApplicationAdminController extends Controller
         $email = $application->email;
         $isPenyusunUser = User::where('email', $email)->where('is_penyusun', true)->exists();
         $hasPenyusunApp = \App\Models\PenyusunApplication::where('email', $email)->whereIn('status', ['approved', 'pending'])->exists();
-        
+
         if ($isPenyusunUser || $hasPenyusunApp) {
             return back()->with('error', 'Pendaftar ini terdaftar sebagai Penyusun Modul dan tidak diperbolehkan menjadi Reviewer.');
         }
 
-        $request->validate([
-            'mata_kuliah_ids' => 'nullable|array',
-            'mata_kuliah_ids.*' => 'exists:mata_kuliahs,id',
-        ]);
-
-        DB::transaction(function () use ($application, $request) {
+        DB::transaction(function () use ($application) {
             $passwordPlain = $application->nidn ?: 'Password123!';
 
-            // Buat atau update user
+            // Buat atau update user reviewer
             $user = User::firstOrCreate(
                 ['email' => $application->email],
                 [
@@ -106,7 +106,6 @@ class ReviewerApplicationAdminController extends Controller
                 ]
             );
 
-            // Set is_reviewer
             if (!$user->is_reviewer) {
                 $user->is_reviewer = true;
                 $user->save();
@@ -117,18 +116,10 @@ class ReviewerApplicationAdminController extends Controller
             $application->approved_at = now();
             $application->validated_by = Auth::id();
             $application->save();
-
-            // Set penugasan mata kuliah
-            // Reset yang sebelumnya ditugaskan ke reviewer ini
-            MataKuliah::where('reviewer_id', $user->id)->update(['reviewer_id' => null]);
-            
-            // Assign yang baru
-            if ($request->filled('mata_kuliah_ids')) {
-                MataKuliah::whereIn('id', $request->mata_kuliah_ids)->update(['reviewer_id' => $user->id]);
-            }
         });
 
-        return redirect()->route('admin.reviewer.show', $application)->with('status', 'Pendaftaran reviewer berhasil disetujui dan penugasan mata kuliah telah diperbarui.');
+        return redirect()->route('admin.reviewer.show', $application)
+            ->with('status', 'Pendaftaran reviewer berhasil disetujui. Penetapan reviewer ke modul dapat dilakukan melalui menu Monitoring Final Draft Modul.');
     }
 
     public function reject(Request $request, ReviewerApplication $application)
@@ -159,18 +150,16 @@ class ReviewerApplicationAdminController extends Controller
             }
 
             DB::transaction(function () use ($application) {
-                // Hapus sertifikasi
                 if ($application->sertifikasi_path && Storage::disk('public')->exists($application->sertifikasi_path)) {
                     Storage::disk('public')->delete($application->sertifikasi_path);
                 }
 
-                // Ambil user
                 $user = User::where('email', $application->email)->first();
                 if ($user) {
-                    // Reset mata kuliah reviewer_id
+                    // Bersihkan penugasan modul multi-reviewer
+                    DB::table('penyusun_application_reviewers')->where('reviewer_id', $user->id)->delete();
                     MataKuliah::where('reviewer_id', $user->id)->update(['reviewer_id' => null]);
 
-                    // Hapus user jika hanya reviewer
                     if ($user->is_reviewer && !$user->is_admin && !$user->is_lpm && !$user->is_penyusun) {
                         $user->delete();
                     } else {
@@ -185,7 +174,6 @@ class ReviewerApplicationAdminController extends Controller
             return redirect()->route('admin.reviewer.index')->with('success', 'Data reviewer dan akun terkait berhasil dihapus.');
         }
 
-        // Untuk rejected
         if ($application->status === 'rejected') {
             if ($application->sertifikasi_path && Storage::disk('public')->exists($application->sertifikasi_path)) {
                 Storage::disk('public')->delete($application->sertifikasi_path);
@@ -207,5 +195,33 @@ class ReviewerApplicationAdminController extends Controller
             Storage::disk('public')->path($application->sertifikasi_path),
             $application->sertifikasi_name
         );
+    }
+
+    public function downloadReviewHistoryPdf(ReviewerApplication $application)
+    {
+        $user = User::where('email', $application->email)->first();
+        if (!$user) {
+            return back()->with('error', 'User reviewer tidak ditemukan.');
+        }
+
+        $reviews = FinalDraftReview::where('reviewer_id', $user->id)
+            ->with(['finalDraft.mataKuliah.jurusan', 'finalDraft.penyusunApplication', 'answers'])
+            ->orderByDesc('submitted_at')
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.reviewer-history', [
+            'application' => $application,
+            'user' => $user,
+            'reviews' => $reviews,
+        ])->setPaper('a4', 'portrait')->setOptions([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+        ]);
+
+        $safeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $application->nama_reviewer);
+        $fileName = 'Riwayat_Review_' . $safeName . '_' . date('Ymd') . '.pdf';
+
+        return $pdf->download($fileName);
     }
 }

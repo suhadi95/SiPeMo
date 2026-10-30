@@ -2,46 +2,54 @@
 
 @section('header')
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-        {{ ($isEditing ?? false) ? 'Edit Laporan Validasi' : 'Lengkapi Laporan Validasi' }}
+        Laporan Validasi Bahan Ajar Modular
     </h2>
 @endsection
 
 @section('content')
 <div class="py-4 sm:py-6">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="mb-4">
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <a href="{{ route('reviewer.final-draft.show', $finalDraft) }}" class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900">
                 <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
                 Kembali ke Detail Draft
             </a>
+            <div class="text-sm text-gray-500">
+                FD-{{ str_pad($finalDraft->id, 5, '0', STR_PAD_LEFT) }} · {{ $finalDraft->judul_modul }}
+            </div>
         </div>
 
-        @if(session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
-
         @if(session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                 {{ session('error') }}
             </div>
         @endif
 
-        <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 mb-4">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Ringkasan Penilaian</h3>
-            <p class="text-sm text-gray-600 mb-3">
-                Penilaian Anda: <strong class="text-green-700">{{ $review->hasil_penilaian_label }}</strong>.
-                @if($isEditing ?? false)
-                    Perbarui data laporan validasi di bawah ini jika ada kesalahan input.
-                @else
-                    Lengkapi data berikut untuk menghasilkan laporan validasi PDF.
-                @endif
+        @if($errors->any())
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <p class="font-medium text-sm mb-1">Periksa kembali isian formulir:</p>
+                <ul class="list-disc list-inside text-sm">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <div class="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-lg mb-4 text-sm">
+            <p class="font-semibold mb-1">Form Laporan Validasi</p>
+            <p class="text-xs text-blue-800">
+                Lengkapi identitas validator, rekomendasi umum, dan unggah berkas gambar tanda tangan Anda untuk menghasilkan PDF Laporan Validasi resmi.
             </p>
-            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        </div>
+
+        <!-- Ringkasan Informasi Modul -->
+        <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 mb-4">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">A. Informasi Bahan Ajar</h3>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
                     <dt class="text-gray-500">Judul Modul</dt>
                     <dd class="font-medium text-gray-900">{{ $finalDraft->judul_modul }}</dd>
@@ -65,7 +73,7 @@
             </dl>
         </div>
 
-        <form method="POST" action="{{ route('reviewer.final-draft.validation-report.store', $finalDraft) }}" class="space-y-4" id="validation-report-form">
+        <form method="POST" action="{{ route('reviewer.final-draft.validation-report.store', $finalDraft) }}" enctype="multipart/form-data" class="space-y-4" id="validation-report-form">
             @csrf
 
             <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 space-y-4">
@@ -118,7 +126,7 @@
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 space-y-3">
-                <h3 class="text-sm font-semibold text-gray-900">D. Penilaian Umum</h3>
+                <h3 class="text-sm font-semibold text-gray-900">C. Penilaian Umum</h3>
                 <div>
                     <label for="rekomendasi_validator" class="block text-sm font-medium text-gray-700 mb-1">
                         Rekomendasi Validator <span class="text-red-500">*</span>
@@ -133,36 +141,53 @@
                 </div>
             </div>
 
-            <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 space-y-3">
-                <h3 class="text-sm font-semibold text-gray-900">E. Tanda Tangan Validator</h3>
+            <!-- Bagian Unggah Berkas Gambar Tanda Tangan -->
+            <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 p-4 sm:p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-gray-900">D. Tanda Tangan Validator (Unggah Berkas Gambar)</h3>
+                
                 @if(($isEditing ?? false) && $review->signatureDataUri())
-                    <div class="mb-2">
-                        <p class="text-xs text-gray-500 mb-1">Tanda tangan saat ini:</p>
-                        <div class="border border-gray-200 rounded-md bg-gray-50 p-2 inline-block">
-                            <img src="{{ $review->signatureDataUri() }}" alt="Tanda tangan saat ini" class="max-h-20">
+                    <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p class="text-xs font-semibold text-gray-600 mb-1">Tanda tangan saat ini:</p>
+                        <div class="inline-block bg-white p-2 border border-gray-200 rounded">
+                            <img src="{{ $review->signatureDataUri() }}" alt="Tanda tangan tersimpan" class="max-h-24 max-w-xs object-contain">
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">Gambar ulang di bawah hanya jika ingin mengganti tanda tangan.</p>
+                        <p class="text-xs text-gray-500 mt-1">Unggah berkas baru di bawah hanya jika ingin memperbarui tanda tangan.</p>
                     </div>
-                @else
-                    <p class="text-xs text-gray-500">Gambar tanda tangan Anda pada kotak di bawah menggunakan mouse atau sentuhan layar.</p>
                 @endif
 
-                <div class="border border-gray-300 rounded-md bg-white overflow-hidden">
-                    <canvas id="signature-pad" class="w-full touch-none" style="height: 180px;"></canvas>
-                </div>
-                <input type="hidden" name="signature" id="signature-input" value="{{ old('signature') }}">
-                @error('signature')
-                    <p class="text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Unggah Berkas Gambar Tanda Tangan
+                        @if(!($isEditing ?? false) || !$review->validator_signature)
+                            <span class="text-red-500">*</span>
+                        @endif
+                    </label>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Format berkas yang didukung: <strong>JPG, PNG, WEBP, atau SVG</strong> (maksimal 3MB). Disarankan berlatar belakang transparan atau putih bersih.
+                    </p>
 
-                <div class="flex gap-2">
-                    <button type="button" id="clear-signature"
-                            class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                        Hapus Tanda Tangan
-                    </button>
+                    <div class="flex items-center gap-4">
+                        <input type="file"
+                               name="signature_file"
+                               id="signature_file"
+                               accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                               {{ (!($isEditing ?? false) || !$review->validator_signature) ? 'required' : '' }}
+                               onchange="previewSignature(this)">
+                    </div>
+
+                    <!-- Pratinjau berkas baru yang dipilih -->
+                    <div id="new-signature-preview-container" class="hidden mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-xs font-semibold text-blue-800 mb-1">Pratinjau Berkas Terpilih:</p>
+                        <img id="new-signature-preview" class="max-h-24 max-w-xs object-contain bg-white p-2 border border-gray-200 rounded" alt="Preview Tanda Tangan">
+                    </div>
+
+                    @error('signature_file')
+                        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-gray-600 pt-2 border-t border-gray-100">
                     <p><strong>Nama:</strong> {{ $review->reviewer->name ?? auth()->user()->name }}</p>
                     <p><strong>Tanggal:</strong> {{ ($review->validator_report_completed_at ?? now())->format('d F Y') }}</p>
                 </div>
@@ -175,7 +200,7 @@
                 </a>
                 <button type="submit"
                         class="inline-flex justify-center items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm shadow-sm transition">
-                    {{ ($isEditing ?? false) ? 'Simpan Perubahan' : 'Simpan Laporan & Selesai' }}
+                    {{ ($isEditing ?? false) ? 'Simpan Perubahan Laporan' : 'Simpan Laporan & Selesai' }}
                 </button>
             </div>
         </form>
@@ -183,89 +208,19 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const canvas = document.getElementById('signature-pad');
-    const hiddenInput = document.getElementById('signature-input');
-    const form = document.getElementById('validation-report-form');
-    const clearBtn = document.getElementById('clear-signature');
-    const ctx = canvas.getContext('2d');
-    const hasExistingSignature = @json(($isEditing ?? false) && $review->signatureDataUri());
-    let drawing = false;
-    let hasDrawn = false;
-    let signatureCleared = false;
-
-    function resizeCanvas() {
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * ratio;
-        canvas.height = rect.height * ratio;
-        ctx.scale(ratio, ratio);
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#111827';
+function previewSignature(input) {
+    const container = document.getElementById('new-signature-preview-container');
+    const preview = document.getElementById('new-signature-preview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            container.classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        container.classList.add('hidden');
     }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    function getPos(event) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-    }
-
-    function startDraw(event) {
-        drawing = true;
-        const pos = getPos(event);
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        event.preventDefault();
-    }
-
-    function draw(event) {
-        if (!drawing) return;
-        const pos = getPos(event);
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        hasDrawn = true;
-        signatureCleared = false;
-        event.preventDefault();
-    }
-
-    function stopDraw() {
-        drawing = false;
-    }
-
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseleave', stopDraw);
-    canvas.addEventListener('touchstart', startDraw, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDraw);
-
-    clearBtn.addEventListener('click', function () {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        hiddenInput.value = '';
-        hasDrawn = false;
-        signatureCleared = true;
-    });
-
-    form.addEventListener('submit', function (event) {
-        if (hasDrawn) {
-            hiddenInput.value = canvas.toDataURL('image/png');
-            return;
-        }
-
-        if (hasExistingSignature && !signatureCleared) {
-            hiddenInput.value = '';
-            return;
-        }
-
-        event.preventDefault();
-        alert('Tanda tangan wajib diisi.');
-    });
-});
+}
 </script>
 @endsection

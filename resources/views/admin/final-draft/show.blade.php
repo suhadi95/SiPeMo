@@ -35,9 +35,17 @@
                             </svg>
                             Download File
                         </a>
+                        @if($finalDraft->reviews->isNotEmpty())
+                            <a href="{{ route('admin.final-draft.reviews-pdf', $finalDraft->penyusunApplication) }}" class="inline-flex items-center justify-center px-4 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 w-full sm:w-auto">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Rekap Review (PDF)
+                            </a>
+                        @endif
                         @if($finalDraft->latestReview?->hasCompletedValidationReport())
                             <a href="{{ route('admin.final-draft.validation-report.pdf', $finalDraft) }}" class="inline-flex items-center justify-center px-4 py-2 border border-indigo-300 shadow-sm text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 w-full sm:w-auto">
-                                Download Laporan Validasi PDF
+                                Laporan Validasi (PDF)
                             </a>
                         @endif
                     </div>
@@ -217,7 +225,17 @@
             </div>
         </div>
 
-        @if($finalDraft->latestReview)
+        @if($finalDraft->reviews->isNotEmpty())
+            <div class="mt-4 sm:mt-6 space-y-4">
+                <h4 class="text-base font-semibold text-gray-900">Hasil Penilaian Seluruh Reviewer</h4>
+                @foreach($finalDraft->reviews as $rev)
+                    <div class="border-t border-gray-200 pt-3">
+                        <div class="text-xs font-bold text-gray-500 uppercase mb-2">Penilaian oleh: {{ $rev->reviewer->name ?? 'Reviewer' }}</div>
+                        <x-final-draft-review-summary :review="$rev" />
+                    </div>
+                @endforeach
+            </div>
+        @elseif($finalDraft->latestReview)
             <div class="mt-4 sm:mt-6">
                 <x-final-draft-review-summary :review="$finalDraft->latestReview" />
             </div>

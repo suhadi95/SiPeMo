@@ -130,4 +130,42 @@ class FinalDraft extends Model
     {
         return in_array($this->status, ['approved_by_reviewer', 'pending_lpm'], true);
     }
+
+    public function assignedReviewers()
+    {
+        return $this->penyusunApplication?->reviewers ?? collect();
+    }
+
+    public function isReviewCompletedBy(int $userId): bool
+    {
+        return $this->reviews()->where('reviewer_id', $userId)->exists();
+    }
+
+    public function reviewBy(int $userId): ?FinalDraftReview
+    {
+        return $this->reviews()->where('reviewer_id', $userId)->first();
+    }
+
+    /**
+     * Menghitung status agregat final draft berdasarkan penilaian seluruh reviewer yang ditugaskan.
+     */
+    public function evaluateMultiReviewerStatus(): string
+    {
+        $assigned = $this->assignedReviewers();
+        if ($assigned->isEmpty()) {
+            return 'pending_review';
+        }
+
+        $reviews = $this->reviews()->whereIn('reviewer_id', $assigned->pluck('id'))->get();
+
+        // Jika belum semua reviewer yang ditugaskan menyelesaikan penilaian
+        if ($reviews->count() < $assigned->count()) {
+            return 'pending_review';
+        }
+
+        // Jika salah satu atau lebih memberikan hasil selain sangat layak (misal: perlu perbaikan)
+        $hasRevisi = $reviews->contains(fn ($r) => $r->hasil_penilaian !== FinalDraftReview::HASIL_SANGAT_LAYAK);
+
+        return $hasRevisi ? 'rejected_by_reviewer' : 'approved_by_reviewer';
+    }
 }

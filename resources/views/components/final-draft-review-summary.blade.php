@@ -7,6 +7,7 @@
         $grouped = $review->answersGroupedByAspek();
         $hasilClass = match ($review->hasil_penilaian) {
             'sangat_layak' => 'bg-green-100 text-green-800',
+            'perlu_perbaikan' => 'bg-amber-100 text-amber-800',
             'layak_dengan_perbaikan' => 'bg-yellow-100 text-yellow-800',
             'perlu_revisi_mayor' => 'bg-orange-100 text-orange-800',
             'tidak_layak' => 'bg-red-100 text-red-800',
@@ -25,9 +26,16 @@
                     @endif
                 </p>
             </div>
-            <span class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full {{ $hasilClass }}">
-                {{ $review->hasil_penilaian_label }}
-            </span>
+            <div class="flex items-center gap-2">
+                @if($review->maksimal_skor > 0)
+                    <span class="text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                        Skor: {{ $review->total_skor }}/{{ $review->maksimal_skor }} ({{ $review->persentase_skor }}%)
+                    </span>
+                @endif
+                <span class="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full {{ $hasilClass }}">
+                    {{ $review->hasil_penilaian_label }}
+                </span>
+            </div>
         </div>
 
         <div class="p-4 space-y-5">

@@ -50,6 +50,8 @@ class FinalDraftController extends Controller
             'lpmValidator',
             'reviewerValidator',
             'activityLogs.actor',
+            'reviews.answers',
+            'reviews.reviewer',
             'latestReview.answers',
             'latestReview.reviewer',
         ]);
